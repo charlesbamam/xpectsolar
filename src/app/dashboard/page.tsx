@@ -1,54 +1,70 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowUpRight, ArrowDownRight, CheckCircle2, Search, Filter, PieChart, BarChart3, TrendingUp, Zap, Sparkles, Info, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowUpRight, ArrowDownRight, CheckCircle2, Search, Filter, PieChart, BarChart3, TrendingUp, Zap, Info, X, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 export default function DashboardIndex() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showBanner, setShowBanner] = useState(true);
 
-    const topLeads = [
-        {
-            id: "1",
-            name: "Carlos Andrade",
-            email: "carlos.e@gmail.com",
-            date: "Hoje, 14:30",
-            score: "A" as const,
-            capex: "R$ 35.000",
-            savings: "R$ 840,00"
-        },
-        {
-            id: "2",
-            name: "Empresa Logística Sul",
-            email: "contato@logsul.com.br",
-            date: "Ontem, 09:15",
-            score: "A" as const,
-            capex: "R$ 145.000",
-            savings: "R$ 4.200,00"
-        },
-        {
-            id: "3",
-            name: "Mariana Silveira",
-            email: "mari.silveira@outlook.com",
-            date: "22/05/2026",
-            score: "B" as const,
-            capex: "R$ 18.200",
-            savings: "R$ 310,00"
-        }
-    ];
+    const [leads, setLeads] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const filteredTopLeads = topLeads.filter(lead =>
+    useEffect(() => {
+        const fetchLeads = async () => {
+            setLoading(true);
+            try {
+                // Em um cenário real, filtraríamos pelo consultant_id do usuário logado
+                // Por agora, para o MVP, pegamos os últimos leads gerais
+                const { data, error } = await supabase
+                    .from('leads')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (error) throw error;
+                if (data) setLeads(data);
+            } catch (err) {
+                console.error("Erro ao buscar leads:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchLeads();
+    }, []);
+
+    const filteredTopLeads = leads.filter(lead =>
         lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.email.toLowerCase().includes(searchQuery.toLowerCase())
+        (lead.email && lead.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );
+
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ", " +
+            date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    };
 
     const scrollToOpportunities = () => {
         const element = document.getElementById("top-opportunities");
         if (element) {
             element.scrollIntoView({ behavior: "smooth" });
         }
+    };
+
+    const totalLeads = leads.length;
+    const qualifiedLeads = leads.filter(l => l.score === 'A' || l.score === 'B').length;
+    const qualifiedPercent = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0;
+    const totalCapex = leads.reduce((acc, curr) => acc + (curr.estimated_capex || 0), 0);
+    const avgSavings = totalLeads > 0 ? leads.reduce((acc, curr) => acc + (curr.estimated_savings || 0), 0) / totalLeads : 0;
+
+    const formatCurrencyCompact = (value: number) => {
+        if (value >= 1000000) return `R$ ${(value / 1000000).toFixed(1)}M`;
+        if (value >= 1000) return `R$ ${(value / 1000).toFixed(1)}k`;
+        return `R$ ${value.toFixed(0)}`;
     };
 
     return (
@@ -94,41 +110,19 @@ export default function DashboardIndex() {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-[#D0F252] text-[#14151C] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1">
-                            <Zap size={12} fill="currentColor" /> Xpect BI
-                        </span>
-                        <span className="text-sm font-medium text-slate-500">Atualizado agora</span>
-                    </div>
-                    <h1 className="text-3xl font-extrabold text-[#14151C] tracking-tight">Visão Geral</h1>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
-                        <p className="text-slate-600">Análise de performance, conversão e viabilidade financeira dos seus leads.</p>
-                        <select className="border border-slate-200 bg-white rounded-xl px-4 py-1.5 text-sm font-bold text-slate-600 focus:outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-300 shadow-sm cursor-pointer outline-none w-max appearance-none sm:border-l-2 sm:border-l-slate-200 sm:pl-4">
-                            <option value="7d">Últimos 7 dias</option>
-                            <option value="30d">Últimos 30 dias</option>
-                            <option value="tw">Esta Semana</option>
-                            <option value="tm">Este Mês</option>
-                            <option value="ty">Este Ano</option>
-                        </select>
-                    </div>
+                    <h1 className="text-3xl font-black text-[#14151C] tracking-tight">Dashboard Overview</h1>
+                    <p className="text-slate-500 font-medium mt-1">Bem-vindo, acompanhe suas métricas de prospecção satelital.</p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="relative inline-block group hidden md:block mt-2">
-                        {/* Sparkles / Estrelinhas animadas */}
-                        <div className="absolute -top-3 -left-3 text-[#D0F252] animate-sparkle group-hover:scale-125 transition-transform"><Sparkles size={14} className="fill-current" /></div>
-                        <div className="absolute -bottom-2 -right-2 text-[#D0F252] animate-sparkle group-hover:scale-125 transition-transform" style={{ animationDelay: '500ms' }}><Sparkles size={10} className="fill-current" /></div>
-                        <div className="absolute top-1/2 -right-4 text-[#D0F252] animate-sparkle opacity-50" style={{ animationDelay: '200ms' }}><Sparkles size={8} className="fill-current" /></div>
-
-                        <button
-                            onClick={scrollToOpportunities}
-                            className="bg-[#D0F252] text-[#14151C] border border-[#D0F252] px-6 py-2 rounded-xl text-sm font-black shadow-[0_0_15px_rgba(208,242,82,0.4)] hover:shadow-[0_0_25px_rgba(208,242,82,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
-                        >
-                            Ver Oportunidades &darr;
-                        </button>
-                    </div>
-                    <button onClick={() => window.print()} className="bg-[#14151C] text-white px-5 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-black transition-all active:scale-95">
-                        Baixar Relatório PDF
+                    <button
+                        onClick={scrollToOpportunities}
+                        className="bg-[#D0F252] text-[#14151C] border border-[#D0F252] px-6 py-2.5 rounded-xl text-sm font-black shadow-[0_0_15px_rgba(208,242,82,0.4)] hover:shadow-[0_0_25px_rgba(208,242,82,0.6)] hover:-translate-y-0.5 transition-all hidden md:flex items-center gap-2"
+                    >
+                        Ver Oportunidades &darr;
+                    </button>
+                    <button onClick={() => window.print()} className="bg-[#14151C] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-black transition-all active:scale-95">
+                        Relatório PDF
                     </button>
                 </div>
             </div>
@@ -137,29 +131,29 @@ export default function DashboardIndex() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     title="Leads Captados"
-                    value="148"
-                    trend="+24%"
+                    value={loading ? "..." : totalLeads.toString()}
+                    trend="+100%"
                     positive
                     icon={<PieChart size={20} className="text-[#6B8C49]" />}
                 />
                 <MetricCard
-                    title="Qualificados (Score A/B)"
-                    value="86%"
+                    title="Qualificação"
+                    value={loading ? "..." : `${qualifiedPercent}%`}
                     trend="+5%"
                     positive
                     icon={<CheckCircle2 size={20} className="text-blue-500" />}
                 />
                 <MetricCard
-                    title="Volume em Potencial"
-                    value="R$ 1.2M"
+                    title="Volume Potencial"
+                    value={loading ? "..." : formatCurrencyCompact(totalCapex)}
                     trend="+12%"
                     positive
                     icon={<BarChart3 size={20} className="text-purple-500" />}
                 />
                 <MetricCard
-                    title="Tempo Médio Payback"
-                    value="3.8 Anos"
-                    trend="-2 meses"
+                    title="Economia Média"
+                    value={loading ? "..." : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(avgSavings)}
+                    trend="Mensal"
                     positive
                     icon={<TrendingUp size={20} className="text-orange-500" />}
                 />
@@ -273,23 +267,32 @@ export default function DashboardIndex() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {filteredTopLeads.length > 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Loader2 size={32} className="animate-spin text-slate-300" />
+                                            <p className="font-bold text-sm">Carregando leads...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredTopLeads.length > 0 ? (
                                 filteredTopLeads.map(lead => (
                                     <LeadRow
                                         key={lead.id}
                                         id={lead.id}
                                         name={lead.name}
-                                        email={lead.email}
-                                        date={lead.date}
-                                        score={lead.score}
-                                        capex={lead.capex}
-                                        savings={lead.savings}
+                                        email={lead.email || "Sem e-mail"}
+                                        date={formatDate(lead.created_at)}
+                                        score={lead.score as "A" | "B" | "C"}
+                                        capex={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_capex)}
+                                        savings={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_savings)}
                                     />
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                                        Nenhuma oportunidade encontrada.
+                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                        Nenhuma oportunidade encontrada. Comece a compartilhar seu link!
                                     </td>
                                 </tr>
                             )}

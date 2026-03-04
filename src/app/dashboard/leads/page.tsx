@@ -1,94 +1,65 @@
 "use client";
 
 import { Search, Filter, Download, CheckCircle2, AlertTriangle, XCircle, MapPin, Calendar, ArrowUpRight } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 type Lead = {
     id: string;
     name: string;
     email: string;
-    address: string;
+    city_state: string;
     score: string;
-    savings: string;
+    estimated_savings: number;
+    estimated_capex: number;
     status: string;
-    date: string;
-    isoDate: string; // added for sorting/filtering
+    created_at: string;
 };
 
-const dt = new Date();
-const today = dt.toISOString();
-const yesterday = new Date(dt.setDate(dt.getDate() - 1)).toISOString();
-const lastWeek = new Date(dt.setDate(dt.getDate() - 6)).toISOString();
-const nextMonth = new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString();
-
-const MOCK_LEADS: Lead[] = [
-    {
-        id: "1",
-        name: "Carlos Andrade",
-        email: "carlos.andrade@gmail.com",
-        address: "Rua das Palmeiras, 123 - SP",
-        score: "A",
-        savings: "R$ 840/mês",
-        status: "Novo",
-        date: "Hoje, 14:30",
-        isoDate: today
-    },
-    {
-        id: "2",
-        name: "Empresa Logística Sul",
-        email: "contato@logsul.com.br",
-        address: "Av. Industrial, 4000 - RS",
-        score: "A",
-        savings: "R$ 4.200/mês",
-        status: "Qualificado",
-        date: "Ontem, 09:15",
-        isoDate: yesterday
-    },
-    {
-        id: "3",
-        name: "Mariana Silveira",
-        email: "mari.silveira@outlook.com",
-        address: "Rua dos Jacarandás, 55 - MG",
-        score: "B",
-        savings: "R$ 310/mês",
-        status: "Pendente",
-        date: "22/05/2026",
-        isoDate: nextMonth
-    },
-    {
-        id: "4",
-        name: "Condomínio Residencial",
-        email: "sindico.jose@condo.com",
-        address: "Rua das Águias, 800 - RJ",
-        score: "C",
-        savings: "R$ 120/mês",
-        status: "Arquivado",
-        date: "Há 1 semana",
-        isoDate: lastWeek
-    }
-];
-
 export default function LeadsPage() {
+    const [leads, setLeads] = useState<Lead[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [scoreFilter, setScoreFilter] = useState("Todos");
     const [statusFilter, setStatusFilter] = useState("Todos");
     const [periodFilter, setPeriodFilter] = useState("Todos");
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+    useEffect(() => {
+        const fetchLeads = async () => {
+            setLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from('leads')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                if (data) setLeads(data);
+            } catch (err) {
+                console.error("Erro ao buscar leads:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchLeads();
+    }, []);
+
     const filteredLeads = useMemo(() => {
-        return MOCK_LEADS.filter((lead) => {
+        return leads.filter((lead) => {
             const matchesSearch =
                 lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                lead.address.toLowerCase().includes(searchTerm.toLowerCase());
+                (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (lead.city_state && lead.city_state.toLowerCase().includes(searchTerm.toLowerCase()));
 
             const matchesScore = scoreFilter === "Todos" || lead.score === scoreFilter;
             const matchesStatus = statusFilter === "Todos" || lead.status === statusFilter;
 
             let matchesPeriod = true;
             if (periodFilter !== "Todos") {
-                const leadDate = new Date(lead.isoDate);
+                const leadDate = new Date(lead.created_at);
                 const now = new Date();
                 const diffTime = Math.abs(now.getTime() - leadDate.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -99,15 +70,21 @@ export default function LeadsPage() {
 
             return matchesSearch && matchesScore && matchesStatus && matchesPeriod;
         });
-    }, [searchTerm, scoreFilter, statusFilter, periodFilter]);
+    }, [leads, searchTerm, scoreFilter, statusFilter, periodFilter]);
+
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ", " +
+            date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    };
 
     const activeFiltersCount = (scoreFilter !== "Todos" ? 1 : 0) + (statusFilter !== "Todos" ? 1 : 0) + (periodFilter !== "Todos" ? 1 : 0);
 
     const exportCSV = () => {
-        const headers = ["ID", "Nome", "Email", "Endereço", "Score", "Economia", "Status", "Data Captada"];
+        const headers = ["ID", "Nome", "Email", "Cidade/Estado", "Score", "Economia Est. (Mensal)", "Investimento Est.", "Status", "Data Captada"];
         const csvContent = "data:text/csv;charset=utf-8,"
             + headers.join(",") + "\n"
-            + filteredLeads.map(lead => `${lead.id},"${lead.name}",${lead.email},"${lead.address}",${lead.score},"${lead.savings}",${lead.status},"${lead.date}"`).join("\n");
+            + filteredLeads.map(lead => `${lead.id},"${lead.name}",${lead.email || ""},"${lead.city_state || ""}",${lead.score},"${lead.estimated_savings}","${lead.estimated_capex}",${lead.status || "Novo"},"${lead.created_at}"`).join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -237,18 +214,24 @@ export default function LeadsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredLeads.length > 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                        Carregando seus leads...
+                                    </td>
+                                </tr>
+                            ) : filteredLeads.length > 0 ? (
                                 filteredLeads.map((lead) => (
                                     <LeadRow
                                         key={lead.id}
                                         id={lead.id}
                                         name={lead.name}
-                                        email={lead.email}
-                                        address={lead.address}
+                                        email={lead.email || "Sem e-mail"}
+                                        address={lead.city_state || "Local não informado"}
                                         score={lead.score}
-                                        savings={lead.savings}
-                                        status={lead.status}
-                                        date={lead.date}
+                                        savings={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_savings)}
+                                        status={lead.status || "Novo"}
+                                        date={formatDate(lead.created_at)}
                                     />
                                 ))
                             ) : (

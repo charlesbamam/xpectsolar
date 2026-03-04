@@ -1,10 +1,43 @@
 "use client";
 
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Facebook } from "lucide-react";
+import { ArrowRight, Facebook, Loader2 } from "lucide-react";
+import { AuthError } from "@supabase/supabase-js";
 
 export default function LoginPage() {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const router = useRouter();
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        try {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (authError) throw authError;
+
+            router.push('/dashboard');
+            router.refresh();
+        } catch (err: unknown) {
+            const authError = err as AuthError;
+            setError(authError.message || "Erro ao realizar login. Verifique suas credenciais.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] font-sans selection:bg-[#D0F252]/30 p-4">
             <div className="w-full max-w-md">
@@ -22,13 +55,22 @@ export default function LoginPage() {
                         <p className="text-slate-500 mt-2">Acesse seu dashboard de análises satelitais</p>
                     </div>
 
-                    <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); window.location.href = '/dashboard'; }}>
+                    {error && (
+                        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-100">
+                            {error}
+                        </div>
+                    )}
+
+                    <form className="space-y-5" onSubmit={handleLogin}>
                         <div className="space-y-2">
                             <label htmlFor="email" className="block text-sm font-medium text-slate-700">Email Corporativo</label>
                             <input
                                 id="email"
                                 type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 placeholder="nome@suaempresa.com.br"
+                                required
                                 className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#14151C]/20 focus:border-[#14151C] transition-all placeholder:text-slate-400 text-[#14151C]"
                             />
                         </div>
@@ -41,13 +83,24 @@ export default function LoginPage() {
                             <input
                                 id="password"
                                 type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
+                                required
                                 className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#14151C]/20 focus:border-[#14151C] transition-all placeholder:text-slate-400 text-[#14151C]"
                             />
                         </div>
 
-                        <button type="submit" className="w-full h-12 flex items-center justify-center gap-2 bg-[#14151C] hover:bg-black text-white rounded-xl font-semibold shadow-md shadow-[#14151C]/10 transition-all hover:-translate-y-0.5 mt-2">
-                            Entrar <ArrowRight size={18} />
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full h-12 flex items-center justify-center gap-2 bg-[#14151C] hover:bg-black disabled:bg-slate-400 text-white rounded-xl font-semibold shadow-md shadow-[#14151C]/10 transition-all hover:-translate-y-0.5 mt-2"
+                        >
+                            {loading ? (
+                                <Loader2 className="animate-spin" size={20} />
+                            ) : (
+                                <>Entrar <ArrowRight size={18} /></>
+                            )}
                         </button>
 
                         <div className="relative flex items-center py-2">

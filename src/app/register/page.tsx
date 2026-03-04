@@ -1,10 +1,64 @@
 "use client";
 
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, CheckCircle2, Facebook } from "lucide-react";
+import { Zap, CheckCircle2, Facebook, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const router = useRouter();
+
+    const handleRegister = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        try {
+            // 1. Criar usuário no Auth
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+            });
+
+            if (authError) throw authError;
+
+            if (authData.user) {
+                // 2. Criar perfil de consultor padrão
+                const fullName = `${firstName} ${lastName}`.trim();
+                const slug = firstName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") + "-" + Math.floor(Math.random() * 1000);
+
+                const { error: profileError } = await supabase.from('consultants').insert({
+                    user_id: authData.user.id,
+                    full_name: fullName,
+                    email: email,
+                    whatsapp_number: "00000000000", // Padrão para preencher depois
+                    slug: slug.replace(/[^a-z0-h-]/g, "")
+                });
+
+                if (profileError) {
+                    console.error("Erro ao criar perfil:", profileError);
+                    // Silenciosamente logamos o erro do perfil, o usuário já foi criado no auth
+                }
+            }
+
+            // Sucesso! Redireciona
+            router.push('/dashboard/settings'); // Manda para configurações para terminar o perfil
+            router.refresh();
+        } catch (err: any) {
+            setError(err.message || "Erro ao criar conta. Tente novamente.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] font-sans selection:bg-[#D0F252]/30 p-4">
             <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl shadow-[#14151C]/5 border border-slate-100 overflow-hidden flex flex-col md:flex-row">
@@ -50,14 +104,23 @@ export default function RegisterPage() {
                             <p className="text-slate-500 mt-2">Comece a classificar seus leads hoje mesmo.</p>
                         </div>
 
-                        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); window.location.href = '/dashboard'; }}>
+                        {error && (
+                            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-100 mb-6">
+                                {error}
+                            </div>
+                        )}
+
+                        <form className="space-y-5" onSubmit={handleRegister}>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label htmlFor="firstname" className="block text-sm font-medium text-slate-700">Nome</label>
                                     <input
                                         id="firstname"
                                         type="text"
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
                                         placeholder="João"
+                                        required
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#14151C]/20 focus:border-[#14151C] transition-all text-[#14151C]"
                                     />
                                 </div>
@@ -66,7 +129,10 @@ export default function RegisterPage() {
                                     <input
                                         id="lastname"
                                         type="text"
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
                                         placeholder="Silva"
+                                        required
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#14151C]/20 focus:border-[#14151C] transition-all text-[#14151C]"
                                     />
                                 </div>
@@ -77,7 +143,10 @@ export default function RegisterPage() {
                                 <input
                                     id="email"
                                     type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     placeholder="nome@suaempresa.com.br"
+                                    required
                                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#14151C]/20 focus:border-[#14151C] transition-all placeholder:text-slate-400 text-[#14151C]"
                                 />
                             </div>
@@ -87,13 +156,25 @@ export default function RegisterPage() {
                                 <input
                                     id="password"
                                     type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     placeholder="Mínimo de 8 caracteres"
+                                    required
+                                    minLength={8}
                                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#14151C]/20 focus:border-[#14151C] transition-all placeholder:text-slate-400 text-[#14151C]"
                                 />
                             </div>
 
-                            <button type="submit" className="w-full h-12 flex items-center justify-center gap-2 bg-[#14151C] hover:bg-black text-white rounded-xl font-semibold shadow-md shadow-[#14151C]/10 transition-all hover:-translate-y-0.5 mt-4">
-                                Criar Conta Gratuita <Zap size={18} fill="currentColor" className="text-[#D0F252]" />
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full h-12 flex items-center justify-center gap-2 bg-[#14151C] hover:bg-black disabled:bg-slate-400 text-white rounded-xl font-semibold shadow-md shadow-[#14151C]/10 transition-all hover:-translate-y-0.5 mt-4"
+                            >
+                                {loading ? (
+                                    <Loader2 className="animate-spin" size={20} />
+                                ) : (
+                                    <>Criar Conta Gratuita <Zap size={18} fill="currentColor" className="text-[#D0F252]" /></>
+                                )}
                             </button>
 
                             <div className="relative flex items-center py-2">

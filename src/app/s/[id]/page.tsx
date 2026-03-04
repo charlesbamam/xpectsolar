@@ -208,7 +208,7 @@ export default function PublicSimulator() {
             economiaAcumuladaAnual *= (1 + reajusteAnualEnergia);
         }
 
-        setResults({
+        const newResults: CalculationResults = {
             economiaMensal,
             economiaAnual: economiaMensal * 12,
             paybackAnos: paybackAnos.toFixed(1),
@@ -218,7 +218,10 @@ export default function PublicSimulator() {
             areaTelhado: areaTelhado.toFixed(1),
             geracaoMensal: Math.round(geracaoMensal),
             economiaTotal25
-        });
+        };
+
+        setResults(newResults);
+        return newResults;
     };
 
     const validateLead = () => {
@@ -246,6 +249,38 @@ export default function PublicSimulator() {
         return Object.keys(newErrors).length === 0;
     };
 
+    const saveLead = async (resultsData: CalculationResults) => {
+        if (!consultant?.id) return;
+
+        try {
+            const { error } = await supabase.from('leads').insert({
+                consultant_id: consultant.id,
+                name: formData.name,
+                phone: formData.phone,
+                email: formData.email,
+                city_state: `${formData.cidade} - ${formData.estado}`,
+                monthly_bill: Number(formData.consumo) * (TARIFAS[formData.estado]?.tarifa || 0.82),
+                solar_potential: Number(resultsData.geracaoMensal),
+                estimated_capex: resultsData.valorProjeto,
+                estimated_savings: resultsData.economiaMensal,
+                score: Number(resultsData.economiaMensal) > 500 ? 'A' : (Number(resultsData.economiaMensal) > 200 ? 'B' : 'C'),
+                status: 'Novo',
+                simulation_data: {
+                    type: formData.type,
+                    companyName: formData.companyName,
+                    consumo_kwh: formData.consumo,
+                    num_placas: resultsData.numPlacas,
+                    potencia: resultsData.potenciaReal
+                }
+            });
+
+            if (error) throw error;
+            console.log("Lead capturado com sucesso!");
+        } catch (err) {
+            console.error("Erro ao salvar lead:", err);
+        }
+    };
+
     const handleNext = () => {
         if (step === "lead") {
             if (validateLead()) setStep("location");
@@ -256,7 +291,13 @@ export default function PublicSimulator() {
                 return;
             }
             setStep("loading");
-            calculateResults();
+            const calculatedResults = calculateResults();
+
+            // Salva o lead no banco de dados
+            if (calculatedResults) {
+                saveLead(calculatedResults);
+            }
+
             setTimeout(() => setStep("result"), 4500);
         }
     };
@@ -286,8 +327,13 @@ export default function PublicSimulator() {
                     <div className="flex items-center gap-4 px-6 py-3 bg-gradient-to-r from-white/10 to-transparent border border-white/10 rounded-3xl backdrop-blur-sm shadow-xl shadow-black/20">
                         <div className="w-14 h-14 rounded-full bg-[#D4E44A] flex items-center justify-center shadow-lg border-2 border-white/20 overflow-hidden">
                             {consultant.avatar_url ? (
-                                /* eslint-disable-next-line @next/next/no-img-element */
-                                <img src={consultant.avatar_url} alt={consultant.full_name} className="w-full h-full object-cover" />
+                                <Image
+                                    src={consultant.avatar_url}
+                                    alt={consultant.full_name}
+                                    width={56}
+                                    height={56}
+                                    className="w-full h-full object-cover"
+                                />
                             ) : (
                                 <span className="text-xl font-black text-[#111F18]">{consultant.full_name.substring(0, 2).toUpperCase()}</span>
                             )}
@@ -381,7 +427,13 @@ export default function PublicSimulator() {
                                         <label className="text-[13px] font-bold text-[#111F18] ml-1">WhatsApp</label>
                                         <div className="flex gap-2">
                                             <div className="flex items-center gap-2 bg-[#f1f8ee] px-4 py-4 rounded-2xl font-bold text-[#6B8F72] text-sm">
-                                                <img src="https://flagcdn.com/w20/br.png" alt="BR" className="w-5 h-auto rounded-sm" />
+                                                <Image
+                                                    src="https://flagcdn.com/w20/br.png"
+                                                    alt="BR"
+                                                    width={20}
+                                                    height={15}
+                                                    className="w-5 h-auto rounded-sm"
+                                                />
                                                 +55
                                             </div>
                                             <input
