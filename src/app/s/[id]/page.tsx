@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import Image from "next/image";
 import {
     Zap, Calculator, CheckCircle2, Phone,
     ArrowRight, ArrowLeft, Building2, Home as HomeIcon,
     PanelsTopLeft, TrendingUp,
     Leaf, ShieldCheck, AreaChart, DollarSign, Calendar,
-    Sun
+    Sun, Loader2
 } from "lucide-react";
 
 type FunnelStep = "lead" | "location" | "loading" | "result";
@@ -92,6 +95,13 @@ interface CalculationResults {
 }
 
 export default function PublicSimulator() {
+    const params = useParams();
+    const slug = params?.id as string;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [consultant, setConsultant] = useState<any>(null);
+    const [loadingConsultant, setLoadingConsultant] = useState(true);
+
     const [step, setStep] = useState<FunnelStep>("lead");
     const [formData, setFormData] = useState({
         name: "",
@@ -106,6 +116,41 @@ export default function PublicSimulator() {
 
     const [results, setResults] = useState<CalculationResults | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (!slug) return;
+        const fetchConsultant = async () => {
+            setLoadingConsultant(true);
+            const { data, error } = await supabase.from('consultants').select('*').eq('slug', slug).single();
+            if (data && !error) {
+                setConsultant(data);
+            }
+            setLoadingConsultant(false);
+        };
+        fetchConsultant();
+    }, [slug]);
+
+    if (loadingConsultant) {
+        return (
+            <div className="min-h-screen bg-[#F4F9F1] flex flex-col items-center justify-center space-y-4">
+                <Loader2 size={40} className="animate-spin text-[#2ECC8C]" />
+                <p className="text-[#1A4A38] font-bold">Carregando simulador do consultor...</p>
+            </div>
+        );
+    }
+
+    if (!consultant) {
+        return (
+            <div className="min-h-screen bg-[#F4F9F1] flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-6 text-red-500">
+                    <span className="font-black text-3xl">!</span>
+                </div>
+                <h1 className="text-2xl font-black text-[#111F18] font-['Space_Grotesk'] mb-2">Simulador Indisponível</h1>
+                <p className="text-[#1A4A38] opacity-80 mb-8 max-w-sm">O link da página <b>{slug}</b> que você tentou acessar não está vinculado a nenhum consultor ativo.</p>
+                <button onClick={() => window.location.href = '/'} className="px-6 py-3 bg-[#111F18] text-[#D4E44A] rounded-xl font-bold hover:bg-black transition-colors">Voltar para a Home</button>
+            </div>
+        );
+    }
 
     const updateData = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -239,12 +284,17 @@ export default function PublicSimulator() {
                     </div>
 
                     <div className="flex items-center gap-4 px-6 py-3 bg-gradient-to-r from-white/10 to-transparent border border-white/10 rounded-3xl backdrop-blur-sm shadow-xl shadow-black/20">
-                        <div className="w-14 h-14 rounded-full bg-[#D4E44A] flex items-center justify-center shadow-lg border-2 border-white/20">
-                            <span className="text-xl font-black text-[#111F18]">CB</span>
+                        <div className="w-14 h-14 rounded-full bg-[#D4E44A] flex items-center justify-center shadow-lg border-2 border-white/20 overflow-hidden">
+                            {consultant.avatar_url ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={consultant.avatar_url} alt={consultant.full_name} className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-xl font-black text-[#111F18]">{consultant.full_name.substring(0, 2).toUpperCase()}</span>
+                            )}
                         </div>
                         <div className="text-left">
                             <p className="text-[11px] font-bold text-[#6B8F72] uppercase tracking-tighter mb-0.5 opacity-90">Oferecido por</p>
-                            <p className="text-lg font-black text-white tracking-wide leading-none">Carlos Bamam</p>
+                            <p className="text-lg font-black text-white tracking-wide leading-none">{consultant.full_name}</p>
                         </div>
                     </div>
                 </div>
@@ -627,7 +677,7 @@ export default function PublicSimulator() {
 
                                     <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-4">
                                         <button
-                                            onClick={() => window.open(`https://wa.me/5511999999999?text=Olá Carlos, acabei de realizar a simulação solar da minha empresa e os resultados foram incríveis! Economia estimada de ${formatCurrency(results.economiaAnual)} por ano. Gostaria de um orçamento especializado.`, '_blank')}
+                                            onClick={() => window.open(`https://wa.me/55${consultant.whatsapp_number.replace(/\D/g, '')}?text=Olá ${consultant.full_name}, acabei de realizar a simulação solar da minha empresa e os resultados foram incríveis! Economia estimada de ${formatCurrency(results.economiaAnual)} por ano. Gostaria de um orçamento especializado.`, '_blank')}
                                             className="w-full md:w-auto px-10 py-5 bg-[#111F18] text-[#D4E44A] rounded-2xl font-black text-xl flex items-center justify-center gap-3 hover:-translate-y-1 transition-all shadow-xl shadow-black/20"
                                         >
                                             <Phone size={24} fill="currentColor" /> Falar com um Consultor
