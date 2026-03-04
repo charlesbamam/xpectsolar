@@ -1,0 +1,203 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.searchInput {
+    width: 300px;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    outline: none;
+    font-size: 0.9rem;
+}
+
+.filterBtn {
+    background: white;
+    border: 1px solid var(--border);
+    padding: 0.6rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.filterBtn:hover {
+    background: var(--surface-hover);
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.statCard {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.statCard h3 {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.statNumber {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: var(--foreground);
+    margin-bottom: 0.5rem;
+}
+
+.trendUp {
+    color: #16a34a;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.trendUp::before {
+    content: '↑';
+}
+
+.tableContainer {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.table th {
+    background: #f8fafc;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.idCell {
+    color: var(--text-muted);
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+.clientInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.clientInfo strong {
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.clientInfo span {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.planDefault {
+    background: #f1f5f9;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.planPro {
+    background: #fffbe4;
+    color: #b45309;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.planTeam {
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.statusActive {
+    color: #16a34a;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.statusCancelled {
+    color: #ef4444;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.rowActions {
+    display: flex;
+    gap: 1rem;
+}
+
+.actionBtn {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.actionBtn:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+}
+
+.dangerBtn {
+    color: #ef4444;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border: 1px solid #fca5a5;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    background: #fef2f2;
+}
+
+.dangerBtn:hover {
+    background: #fee2e2;
+}

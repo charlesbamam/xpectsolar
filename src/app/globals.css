@@ -1,26 +1,75 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-solar: #D0F252;
+  --color-solar-hover: #79F28B;
+  --color-primary: #6B8C49;
+  --color-background: #EEF2DC;
+  --color-foreground: #14151C;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --animate-sparkle: sparkle 2s ease-in-out infinite;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  @keyframes sparkle {
+
+    0%,
+    100% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
   font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar - Smooth and rounded */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 9999px;
+  margin: 8px 0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(20, 21, 28, 0.15);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(20, 21, 28, 0.3);
+}
+
+/* Custom Scrollbar for Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(20, 21, 28, 0.15) transparent;
+}
+
+/* Mesh Gradient Background */
+.bg-mesh-green {
+  background-color: hsla(99, 39%, 86%, 1);
+  background-image:
+    radial-gradient(at 40% 80%, hsla(78, 100%, 78%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, hsla(109, 100%, 77%, 1) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsla(139, 76%, 78%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(60, 100%, 94%, 1) 0px, transparent 50%);
+  background-size: cover;
+  background-position: center;
 }

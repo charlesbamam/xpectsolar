@@ -1,0 +1,105 @@
+.layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f1f5f9;
+    /* Slightly darker background to distinguish from user dashboard */
+}
+
+.adminHeader {
+    height: 60px;
+    background-color: #0f172a;
+    /* Dark header for God Mode distinction */
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.icon {
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+.logo h1 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.logo span {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+}
+
+.nav {
+    display: flex;
+    gap: 2rem;
+}
+
+.navItem {
+    color: #94a3b8;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+    padding: 1.1rem 0;
+    border-bottom: 2px solid transparent;
+}
+
+.navItem:hover {
+    color: white;
+}
+
+.navItem.active {
+    color: white;
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+}
+
+.adminProfile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.badge {
+    background: #ef4444;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.logoutBtn {
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.logoutBtn:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+.mainContent {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
