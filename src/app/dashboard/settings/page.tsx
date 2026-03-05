@@ -2,9 +2,11 @@
 
 import { User, Mail, Shield, Bell, Save, Camera, Lock, Eye, EyeOff, MessageCircle, Link as LinkIcon, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function SettingsPage() {
+    const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [fullName, setFullName] = useState("");
@@ -17,33 +19,40 @@ export default function SettingsPage() {
 
     useEffect(() => {
         const loadProfile = async () => {
-            const profileId = localStorage.getItem("consultantId");
-            if (profileId) {
-                // Busca do Supabase caso ele já tenha perfil criado
-                const { data, error } = await supabase.from('consultants').select('*').eq('id', profileId).single();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+                setEmail(user.email || "");
+
+                const { data, error } = await supabase.from('consultants').select('*').eq('id', user.id).single();
                 if (data && !error) {
                     setFullName(data.full_name);
-                    setEmail(data.email || "");
                     setWhatsapp(data.whatsapp_number);
                     setSlug(data.slug);
                     setAvatarUrl(data.avatar_url);
-                    // Atualiza memórias visuais (sidebar)
+
+                    // Sincroniza cache local e UI
+                    localStorage.setItem("consultantId", data.id);
                     localStorage.setItem("userFullName", data.full_name);
                     if (data.avatar_url) localStorage.setItem("userAvatar", data.avatar_url);
                     window.dispatchEvent(new Event("profileUpdated"));
                 }
             } else {
-                // Modo fallback para onboarding
+                // Caso não esteja logado, manda pro login
                 const savedName = localStorage.getItem("userFullName") || "Consultor Xpect";
-                const savedEmail = localStorage.getItem("userEmail") || "consultor@xpectsolar.com";
                 setFullName(savedName);
-                setEmail(savedEmail);
             }
         };
         loadProfile();
     }, []);
 
     const handleSaveProfile = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
         if (!slug || !fullName || !whatsapp) {
             alert("Por favor, preencha o Nome, WhatsApp e um Nome de Link (Slug).");
             return;
@@ -51,9 +60,8 @@ export default function SettingsPage() {
 
         setIsSaving(true);
         try {
-            let profileId = localStorage.getItem("consultantId");
             const payload = {
-                // Formata o slug tirando espaços, virando url amiga
+                id: user.id, // Garante que o ID do Auth seja o ID do consultor
                 slug: slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-'),
                 full_name: fullName,
                 email: email,
@@ -61,19 +69,13 @@ export default function SettingsPage() {
                 avatar_url: avatarUrl
             };
 
-            if (profileId) {
-                const { error } = await supabase.from('consultants').update(payload).eq('id', profileId);
-                if (error) throw error;
-            } else {
-                const { data, error } = await supabase.from('consultants').insert([payload]).select().single();
-                if (error) throw error;
-                if (data) {
-                    localStorage.setItem("consultantId", data.id);
-                }
-            }
+            // Tenta dar um upsert (insere se não existe, atualiza se existe)
+            const { error } = await supabase.from('consultants').upsert(payload);
+            if (error) throw error;
 
             // Reflete no Sidebar Local
             localStorage.setItem("userFullName", fullName);
+            localStorage.setItem("consultantId", user.id);
             window.dispatchEvent(new Event("profileUpdated"));
 
             alert("Sua página pública foi atualizada com sucesso!");

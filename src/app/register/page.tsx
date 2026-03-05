@@ -36,11 +36,12 @@ export default function RegisterPage() {
                 const slug = firstName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") + "-" + Math.floor(Math.random() * 1000);
 
                 const { error: profileError } = await supabase.from('consultants').insert({
-                    user_id: authData.user.id,
+                    id: authData.user.id,
                     full_name: fullName,
                     email: email,
                     whatsapp_number: "00000000000", // Padrão para preencher depois
-                    slug: slug.replace(/[^a-z0-h-]/g, "")
+                    slug: slug.replace(/[^a-z0-9-]/g, ""),
+                    company_name: "Xpect Solar" // Padrão inicial
                 });
 
                 if (profileError) {

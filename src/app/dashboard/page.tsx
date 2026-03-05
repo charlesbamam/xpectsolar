@@ -17,11 +17,13 @@ export default function DashboardIndex() {
         const fetchLeads = async () => {
             setLoading(true);
             try {
-                // Em um cenário real, filtraríamos pelo consultant_id do usuário logado
-                // Por agora, para o MVP, pegamos os últimos leads gerais
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
                 const { data, error } = await supabase
                     .from('leads')
                     .select('*')
+                    .eq('consultant_id', user.id)
                     .order('created_at', { ascending: false })
                     .limit(5);
 
