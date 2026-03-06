@@ -14,9 +14,7 @@ export default function RegisterPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [isSuccess, setIsSuccess] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
-    const [otp, setOtp] = useState("");
     const router = useRouter();
 
     const handleRegister = async (e: React.FormEvent) => {
@@ -25,69 +23,29 @@ export default function RegisterPage() {
         setError("");
 
         try {
-            // 1. Criar usuário no Auth usando o método tradicional
+            // 1. Criar usuário no Auth com o link de confirmação tradicional
+            // Passamos firstName e lastName no user_metadata para usar depois da confirmação
             const { error: authError } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        first_name: firstName,
+                        last_name: lastName,
+                    },
+                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                }
             });
 
             if (authError) throw authError;
 
-            // Transaciona para a tela de verificação de código
-            setIsVerifying(true);
+            // Transaciona para a tela de aviso de e-mail enviado
+            setIsVerifying(true); // Usamos este estado para mostrar a mensagem de sucesso de envio
             setLoading(false);
 
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : "Erro ao criar conta. Tente novamente.";
             setError(errorMessage);
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyEmail = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-
-        try {
-            // 1. Verificar o OTP usando o método nativo do Supabase
-            const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
-                email,
-                token: otp,
-                type: 'signup',
-            });
-
-            if (verifyError) throw verifyError;
-
-            if (verifyData.user) {
-                // 2. Criar perfil de consultor após a verificação bem-sucedida
-                const fullName = `${firstName} ${lastName}`.trim();
-                const slugCandidate = firstName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") + "-" + Math.floor(Math.random() * 1000);
-
-                const { error: insertError } = await supabase.from('consultants').insert({
-                    user_id: verifyData.user.id,
-                    full_name: fullName,
-                    email: email,
-                    whatsapp_number: "00000000000",
-                    slug: slugCandidate.replace(/[^a-z0-9-]/g, ""),
-                    company_name: "Xpect Solar"
-                });
-
-                if (insertError) throw insertError;
-
-                // MOSTRA A COMEMORAÇÃO
-                setIsSuccess(true);
-                setIsVerifying(false);
-
-                setTimeout(() => {
-                    router.push('/dashboard/settings');
-                    router.refresh();
-                }, 3500);
-            }
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Código inválido ou expirado.";
-            setError(errorMessage);
-        } finally {
             setLoading(false);
         }
     };
@@ -130,62 +88,20 @@ export default function RegisterPage() {
 
                 {/* Right Side - Form */}
                 <div className="md:w-7/12 p-10 md:p-14 lg:px-20 relative bg-white flex flex-col justify-center">
-                    {isSuccess ? (
+                    {isVerifying ? (
                         <div className="text-center animate-in fade-in zoom-in duration-500">
-                            <div className="w-24 h-24 bg-[#D0F252] rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-[#D0F252]/20 animate-bounce">
-                                <Zap size={48} className="text-[#14151C]" fill="#14151C" />
+                            <div className="w-24 h-24 bg-[#D0F252] rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-[#D0F252]/20">
+                                <CheckCircle2 size={48} className="text-[#14151C]" />
                             </div>
-                            <h2 className="text-3xl font-bold text-[#14151C] mb-4">Parabéns, {firstName}!</h2>
+                            <h2 className="text-3xl font-bold text-[#14151C] mb-4">Verifique seu e-mail!</h2>
                             <p className="text-slate-600 text-lg mb-8 leading-relaxed">
-                                Sua conta na <span className="font-bold">Xpect Solar</span> foi verificada com sucesso. <br />
-                                Preparando seu cockpit de vendas...
+                                Enviamos um link de confirmação para: <br />
+                                <span className="font-bold text-[#14151C]">{email}</span>
                             </p>
-                            <div className="flex items-center justify-center gap-2 text-sm font-bold text-[#14151C]">
-                                <Loader2 size={18} className="animate-spin" />
-                                <span>REDIRECIONANDO</span>
-                            </div>
-                        </div>
-                    ) : isVerifying ? (
-                        <div className="max-w-md mx-auto w-full text-center animate-in slide-in-from-right duration-500">
-                            <div className="mb-10">
-                                <h1 className="text-2xl md:text-3xl font-bold text-[#14151C]">Verifique seu e-mail</h1>
-                                <p className="text-slate-500 mt-2">Enviamos um código de 6 dígitos para <br /> <span className="font-semibold text-[#14151C]">{email}</span></p>
-                            </div>
-
-                            {error && (
-                                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-100 mb-6 font-sans">
-                                    {error}
-                                </div>
-                            )}
-
-                            <form onSubmit={handleVerifyEmail} className="space-y-6">
-                                <div className="flex justify-center">
-                                    <input
-                                        type="text"
-                                        maxLength={6}
-                                        value={otp}
-                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                                        placeholder="000000"
-                                        className="w-full max-w-[240px] text-center text-4xl tracking-[0.5em] font-bold py-4 rounded-2xl border-2 border-slate-200 bg-slate-50 focus:bg-white focus:border-[#14151C] focus:outline-none transition-all placeholder:text-slate-200 text-[#14151C]"
-                                        required
-                                        autoFocus
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={loading || otp.length < 6}
-                                    className="w-full h-14 bg-[#14151C] hover:bg-black disabled:bg-slate-300 text-white rounded-2xl font-bold text-lg shadow-xl shadow-black/10 transition-all active:scale-95 flex items-center justify-center gap-3"
-                                >
-                                    {loading ? <Loader2 className="animate-spin" /> : "Verificar e Entrar"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsVerifying(false)}
-                                    className="text-sm font-semibold text-slate-500 hover:text-[#14151C] transition-colors"
-                                >
-                                    Voltar e editar e-mail
-                                </button>
-                            </form>
+                            <p className="text-slate-500 text-sm">
+                                Clique no link enviado para ativar sua conta e acessar seu dashboard. <br />
+                                <span className="text-xs mt-4 block">DICA: Verifique também sua pasta de Spam.</span>
+                            </p>
                         </div>
                     ) : (
                         <div className="max-w-md mx-auto w-full h-full flex flex-col justify-center">

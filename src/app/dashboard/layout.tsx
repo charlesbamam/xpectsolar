@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Users, Calculator, CreditCard, Settings, LogOut, Bell, User } from "lucide-react";
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [fullName, setFullName] = useState<string>("Consultor Solar");
 
@@ -25,6 +27,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             window.removeEventListener("profileUpdated", loadProfile);
         };
     }, []);
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push("/login");
+        router.refresh();
+    };
 
     return (
         <div className="min-h-screen bg-mesh-green text-[#14151C] font-sans flex p-4 gap-4">
@@ -65,7 +73,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <p className="text-[11px] font-medium text-slate-500 truncate">Plano Essencial</p>
                         </div>
                     </div>
-                    <button className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-bold text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-bold text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors"
+                    >
                         <LogOut size={16} /> Encerrar Sessão
                     </button>
                 </div>

@@ -8,19 +8,30 @@ export default function SimulatorConfigPage() {
     const [consultantName, setConsultantName] = useState("Consultor Carlos");
     const [offerText, setOfferText] = useState("Descubra sua Economia Solar");
 
-    useEffect(() => {
-        const storedName = localStorage.getItem("userFullName");
-        if (storedName) {
-            setConsultantName(storedName);
-        }
-    }, []);
+    const [publicLink, setPublicLink] = useState("xpectsolar.vercel.app/s/seu-link");
+    const [iframeSnippet, setIframeSnippet] = useState(`<iframe src="https://xpectsolar.vercel.app/s/seu-link" width="100%" height="600" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></iframe>`);
     const [isCopied, setIsCopied] = useState(false);
     const [isIframeCopied, setIsIframeCopied] = useState(false);
     const [viewMode, setViewMode] = useState<"desktop" | "mobile">("mobile");
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const publicLink = "xpectsolar.com/s/consultor-carlos";
-    const iframeSnippet = `<iframe src="https://${publicLink}" width="100%" height="600" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></iframe>`;
+    useEffect(() => {
+        const loadSettings = async () => {
+            const { data: { user } } = await import("@/lib/supabase").then(m => m.supabase.auth.getUser());
+            if (user) {
+                const { data } = await import("@/lib/supabase").then(m => m.supabase.from('consultants').select('full_name, slug').eq('id', user.id).single());
+                if (data) {
+                    setConsultantName(data.full_name);
+                    if (data.slug) {
+                        const link = `xpectsolar.vercel.app/s/${data.slug}`;
+                        setPublicLink(link);
+                        setIframeSnippet(`<iframe src="https://${link}" width="100%" height="600" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></iframe>`);
+                    }
+                }
+            }
+        };
+        loadSettings();
+    }, []);
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(publicLink);
@@ -107,7 +118,7 @@ export default function SimulatorConfigPage() {
                                 {isCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
                                 <span className="hidden sm:inline">{isCopied ? 'Copiado!' : 'Copiar'}</span>
                             </button>
-                            <Link href="/s/consultor-carlos" target="_blank" className="p-3 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors">
+                            <Link href={`https://${publicLink}`} target="_blank" className="p-3 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors">
                                 <ExternalLink size={20} />
                             </Link>
                         </div>
