@@ -25,20 +25,21 @@ export default function RegisterPage() {
         setError("");
 
         try {
-            // 1. Criar usuário no Auth
-            const { data: authData, error: authError } = await supabase.auth.signUp({
+            // 1. Criar usuário no Auth usando o método tradicional
+            const { error: authError } = await supabase.auth.signUp({
                 email,
                 password,
             });
 
             if (authError) throw authError;
 
-            // Se chegamos aqui, o e-mail de confirmação foi enviado (ou código OTP)
+            // Transaciona para a tela de verificação de código
             setIsVerifying(true);
             setLoading(false);
 
-        } catch (err: any) {
-            setError(err.message || "Erro ao criar conta. Tente novamente.");
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Erro ao criar conta. Tente novamente.";
+            setError(errorMessage);
             setLoading(false);
         }
     };
@@ -49,7 +50,8 @@ export default function RegisterPage() {
         setError("");
 
         try {
-            const { data, error: verifyError } = await supabase.auth.verifyOtp({
+            // 1. Verificar o OTP usando o método nativo do Supabase
+            const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
                 email,
                 token: otp,
                 type: 'signup',
@@ -57,19 +59,21 @@ export default function RegisterPage() {
 
             if (verifyError) throw verifyError;
 
-            if (data.user) {
-                // Criar perfil de consultor agora que o e-mail foi verificado
+            if (verifyData.user) {
+                // 2. Criar perfil de consultor após a verificação bem-sucedida
                 const fullName = `${firstName} ${lastName}`.trim();
                 const slugCandidate = firstName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") + "-" + Math.floor(Math.random() * 1000);
 
-                await supabase.from('consultants').insert({
-                    id: data.user.id,
+                const { error: insertError } = await supabase.from('consultants').insert({
+                    user_id: verifyData.user.id,
                     full_name: fullName,
                     email: email,
                     whatsapp_number: "00000000000",
                     slug: slugCandidate.replace(/[^a-z0-9-]/g, ""),
                     company_name: "Xpect Solar"
                 });
+
+                if (insertError) throw insertError;
 
                 // MOSTRA A COMEMORAÇÃO
                 setIsSuccess(true);
@@ -80,8 +84,9 @@ export default function RegisterPage() {
                     router.refresh();
                 }, 3500);
             }
-        } catch (err: any) {
-            setError(err.message || "Código inválido ou expirado.");
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Código inválido ou expirado.";
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }

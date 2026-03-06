@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, CheckCircle2, Search, Filter, PieChart, BarChart3, TrendingUp, Zap, Info, X, Loader2 } from "lucide-react";
+import { Search, Filter, Zap, Info, X, Loader2, Users, BarChart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -60,14 +60,10 @@ export default function DashboardIndex() {
     const totalLeads = leads.length;
     const qualifiedLeads = leads.filter(l => l.score === 'A' || l.score === 'B').length;
     const qualifiedPercent = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0;
-    const totalCapex = leads.reduce((acc, curr) => acc + (curr.estimated_capex || 0), 0);
-    const avgSavings = totalLeads > 0 ? leads.reduce((acc, curr) => acc + (curr.estimated_savings || 0), 0) / totalLeads : 0;
 
-    const formatCurrencyCompact = (value: number) => {
-        if (value >= 1000000) return `R$ ${(value / 1000000).toFixed(1)}M`;
-        if (value >= 1000) return `R$ ${(value / 1000).toFixed(1)}k`;
-        return `R$ ${value.toFixed(0)}`;
-    };
+    // Calcular leads de hoje
+    const today = new Date().toISOString().split('T')[0];
+    const leadsToday = leads.filter(l => l.created_at.startsWith(today)).length;
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-10">
@@ -130,34 +126,25 @@ export default function DashboardIndex() {
             </div>
 
             {/* Top Metrics Cards - BI Style */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <MetricCard
-                    title="Leads Captados"
+                    title="Total de Leads"
                     value={loading ? "..." : totalLeads.toString()}
-                    trend="+100%"
-                    positive
-                    icon={<PieChart size={20} className="text-[#6B8C49]" />}
+                    description="Base total de contatos"
+                    icon={<Users size={20} strokeWidth={1.5} className="text-slate-500" />}
                 />
                 <MetricCard
-                    title="Qualificação"
+                    title="Novos Leads (Hoje)"
+                    value={loading ? "..." : leadsToday.toString()}
+                    description="Novas entradas nas últimas 24h"
+                    highlight
+                    icon={<Zap size={20} strokeWidth={1.5} className="text-[#D0F252]" />}
+                />
+                <MetricCard
+                    title="Conversão"
                     value={loading ? "..." : `${qualifiedPercent}%`}
-                    trend="+5%"
-                    positive
-                    icon={<CheckCircle2 size={20} className="text-blue-500" />}
-                />
-                <MetricCard
-                    title="Volume Potencial"
-                    value={loading ? "..." : formatCurrencyCompact(totalCapex)}
-                    trend="+12%"
-                    positive
-                    icon={<BarChart3 size={20} className="text-purple-500" />}
-                />
-                <MetricCard
-                    title="Economia Média"
-                    value={loading ? "..." : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(avgSavings)}
-                    trend="Mensal"
-                    positive
-                    icon={<TrendingUp size={20} className="text-orange-500" />}
+                    description="Leads com Score A ou B"
+                    icon={<BarChart size={20} strokeWidth={1.5} className="text-blue-500" />}
                 />
             </div>
 
@@ -285,9 +272,9 @@ export default function DashboardIndex() {
                                         id={lead.id}
                                         name={lead.name}
                                         email={lead.email || "Sem e-mail"}
+                                        location={lead.city_state || "Não informado"}
                                         date={formatDate(lead.created_at)}
                                         score={lead.score as "A" | "B" | "C"}
-                                        capex={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_capex)}
                                         savings={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_savings)}
                                     />
                                 ))
@@ -313,24 +300,18 @@ export default function DashboardIndex() {
 
 // Subcomponents
 
-function MetricCard({ title, value, trend, positive, icon }: { title: string, value: string, trend?: string, positive?: boolean, icon: React.ReactNode }) {
+function MetricCard({ title, value, description, icon, highlight }: { title: string, value: string, description: string, icon: React.ReactNode, highlight?: boolean }) {
     return (
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col relative overflow-hidden group hover:border-[#D0F252] transition-colors">
-            <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-[#D0F252]/10 transition-colors">
+        <div className={`bg-white p-6 rounded-2xl border ${highlight ? 'border-[#D0F252]/30 shadow-[#D0F252]/5 shadow-xl' : 'border-slate-100 shadow-sm'} flex flex-col relative overflow-hidden group hover:border-[#D0F252] transition-colors`}>
+            <div className="flex justify-between items-start mb-6">
+                <div className={`p-2.5 rounded-xl ${highlight ? 'bg-[#D0F252]/10 border border-[#D0F252]/20' : 'bg-slate-50 border border-slate-100'}`}>
                     {icon}
                 </div>
-                {trend && (
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 ${positive ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'
-                        }`}>
-                        {positive ? <ArrowUpRight size={10} strokeWidth={3} /> : <ArrowDownRight size={10} strokeWidth={3} />}
-                        {trend}
-                    </span>
-                )}
             </div>
             <div>
-                <span className="text-3xl font-extrabold text-[#14151C] block tracking-tight">{value}</span>
-                <h3 className="text-xs font-bold text-slate-400 uppercase mt-1 tracking-wider">{title}</h3>
+                <span className="text-4xl font-black text-[#14151C] block tracking-tighter mb-1">{value}</span>
+                <h3 className="text-sm font-bold text-[#14151C] tracking-tight">{title}</h3>
+                <p className="text-[11px] font-medium text-slate-400 mt-0.5">{description}</p>
             </div>
         </div>
     );
@@ -371,7 +352,7 @@ function ScoreBar({ score, label, percentage, color }: { score: string, label: s
     );
 }
 
-function LeadRow({ id, name, email, date, score, capex, savings }: { id: string, name: string, email: string, date: string, score: "A" | "B" | "C", capex: string, savings: string }) {
+function LeadRow({ id, name, email, location, date, score, savings }: { id: string, name: string, email: string, location: string, date: string, score: "A" | "B" | "C", savings: string }) {
     const router = useRouter();
     const getBadgeColor = () => {
         switch (score) {
@@ -383,26 +364,28 @@ function LeadRow({ id, name, email, date, score, capex, savings }: { id: string,
     };
 
     return (
-        <tr className="hover:bg-slate-50 transition-colors group cursor-pointer bg-white" onClick={() => router.push(`/dashboard/leads/${id}`)}>
+        <tr className="hover:bg-slate-50/80 transition-colors group cursor-pointer bg-white" onClick={() => router.push(`/dashboard/leads/${id}`)}>
             <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex flex-col">
-                    <span className="font-bold text-[#14151C]">{name}</span>
-                    <span className="text-xs text-slate-400">{email}</span>
+                    <span className="font-bold text-[#14151C] tracking-tight">{name}</span>
+                    <span className="text-[11px] font-medium text-slate-400">{email}</span>
                 </div>
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-slate-500 text-xs font-medium">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                    <span className="text-xs">{location}</span>
+                </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-slate-400 text-xs font-semibold">
                 {date}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-center">
-                <span className={`inline-block px-3 py-1 text-xs font-black rounded-lg border ${getBadgeColor()}`}>
-                    {score}
+                <span className={`inline-block px-3 py-1 text-[10px] font-black rounded-lg border uppercase tracking-widest ${getBadgeColor()}`}>
+                    Score {score}
                 </span>
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-600">
-                {capex}
-            </td>
             <td className="px-6 py-4 text-right whitespace-nowrap">
-                <div className="inline-flex rounded-lg px-3 py-1.5 bg-green-50 text-green-700 font-bold border border-green-100">
+                <div className="inline-flex rounded-lg px-3 py-1.5 bg-slate-50 text-[#14151C] font-black text-xs border border-slate-100">
                     + {savings}
                 </div>
             </td>
