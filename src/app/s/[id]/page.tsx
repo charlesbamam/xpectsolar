@@ -109,6 +109,8 @@ export default function PublicSimulator() {
         companyName: "",
         email: "",
         phone: "",
+        cep: "",
+        numeroCasa: "",
         estado: "",
         cidade: "",
         consumo: "350"
@@ -268,6 +270,8 @@ export default function PublicSimulator() {
                 simulation_data: {
                     type: formData.type,
                     companyName: formData.companyName,
+                    cep: formData.cep,
+                    numeroCasa: formData.numeroCasa,
                     consumo_kwh: formData.consumo,
                     num_placas: resultsData.numPlacas,
                     potencia: resultsData.potenciaReal
@@ -286,8 +290,8 @@ export default function PublicSimulator() {
             if (validateLead()) setStep("location");
         }
         else if (step === "location") {
-            if (!formData.estado || !formData.cidade) {
-                setErrors({ location: "Selecione o estado e a cidade para continuar." });
+            if (!formData.estado || !formData.cidade || !formData.cep || !formData.numeroCasa) {
+                setErrors({ location: "Preencha todos os campos corretamente para continuar." });
                 return;
             }
             setStep("loading");
@@ -307,46 +311,46 @@ export default function PublicSimulator() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F4F9F1] font-sans selection:bg-[#D4E44A]/30">
+        <div className="min-h-screen bg-[#F4F9F1] font-sans selection:bg-[#D4E44A]/30 flex flex-col items-center">
             {/* Header / Branding do Consultor */}
-            <div className="bg-[#111F18] pt-10 pb-20 text-center relative overflow-hidden">
-                {/* Decorative gradients */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#2ECC8C] rounded-full blur-[120px] opacity-[0.08] -mr-64 -mt-64" />
-                <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-[#D4E44A] rounded-full blur-[100px] opacity-[0.05] -ml-32 -translate-y-1/2" />
+            <div className="w-full max-w-4xl mx-auto px-4 pt-6">
+                <div className="bg-[#111F18] rounded-[32px] p-6 text-center relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4">
+                    {/* Decorative gradients */}
+                    <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-[#2ECC8C] rounded-full blur-[80px] opacity-[0.08] -mr-32 -mt-32 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-[#D4E44A] rounded-full blur-[60px] opacity-[0.05] -ml-20 -mb-20 pointer-events-none" />
 
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 px-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1A4A38] to-[#2ECC8C]/20 border border-white/10 shadow-2xl flex items-center justify-center group pointer-events-none">
-                            <Zap size={20} className="text-[#2ECC8C] drop-shadow-[0_0_8px_rgba(46,204,140,0.5)]" fill="currentColor" />
+                    <div className="relative z-10 flex items-center gap-3 shrink-0 bg-[#1A4A38]/30 px-5 py-3 rounded-2xl border border-white/5">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#1A4A38] to-[#2ECC8C]/20 border border-white/10 shadow-2xl flex items-center justify-center pointer-events-none">
+                            <Zap size={16} className="text-[#2ECC8C] drop-shadow-[0_0_8px_rgba(46,204,140,0.5)]" fill="currentColor" />
                         </div>
-                        <h1 className="text-xl md:text-2xl font-black text-white font-['Space_Grotesk'] tracking-tighter">
-                            Simulador <span className="text-[#D4E44A]">Xpect Solar</span>
+                        <h1 className="text-sm md:text-base font-bold text-white tracking-tight">
+                            Saiba quanto você pode <span className="text-[#D4E44A]">economizar...</span>
                         </h1>
                     </div>
 
-                    <div className="flex items-center gap-4 px-6 py-3 bg-gradient-to-r from-white/10 to-transparent border border-white/10 rounded-3xl backdrop-blur-sm shadow-xl shadow-black/20">
-                        <div className="w-14 h-14 rounded-full bg-[#D4E44A] flex items-center justify-center shadow-lg border-2 border-white/20 overflow-hidden">
+                    <div className="relative z-10 flex items-center gap-4 px-4 py-2 bg-gradient-to-r from-white/5 to-transparent border border-white/10 rounded-full backdrop-blur-sm shadow-xl shadow-black/20 shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-[#D4E44A] flex items-center justify-center shadow-lg border-2 border-white/20 overflow-hidden shrink-0">
                             {consultant.avatar_url ? (
                                 <Image
                                     src={consultant.avatar_url}
                                     alt={consultant.full_name}
-                                    width={56}
-                                    height={56}
+                                    width={40}
+                                    height={40}
                                     className="w-full h-full object-cover"
                                 />
                             ) : (
-                                <span className="text-xl font-black text-[#111F18]">{consultant.full_name.substring(0, 2).toUpperCase()}</span>
+                                <span className="font-black text-[#111F18] text-sm">{consultant.full_name.substring(0, 2).toUpperCase()}</span>
                             )}
                         </div>
-                        <div className="text-left">
-                            <p className="text-[11px] font-bold text-[#6B8F72] uppercase tracking-tighter mb-0.5 opacity-90">Oferecido por</p>
-                            <p className="text-lg font-black text-white tracking-wide leading-none">{consultant.full_name}</p>
+                        <div className="text-left flex items-center gap-2">
+                            <p className="text-[10px] sm:text-xs font-bold text-[#6B8F72] uppercase tracking-tighter opacity-90 leading-none">Oferecido por</p>
+                            <p className="text-sm sm:text-base font-black text-white tracking-wide leading-none">{consultant.full_name}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 -mt-8 pb-20">
+            <div className="w-full max-w-4xl mx-auto px-4 mt-6 pb-20">
                 {/* Step Content */}
                 <div className="bg-white rounded-[32px] shadow-2xl shadow-[#111F18]/5 border border-[#D8EDD5] overflow-hidden">
 
@@ -472,7 +476,36 @@ export default function PublicSimulator() {
                             </div>
 
                             <div className="space-y-6">
+                                {errors.location && (
+                                    <div className="bg-red-50 text-red-500 font-bold p-3 rounded-xl text-center text-sm border border-red-100">
+                                        {errors.location}
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-[#111F18] ml-1">CEP*</label>
+                                        <input
+                                            type="text"
+                                            placeholder="00000-000"
+                                            value={formData.cep}
+                                            onChange={(e) => {
+                                                const raw = e.target.value.replace(/\D/g, '').slice(0, 8);
+                                                const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
+                                                updateData('cep', formatted);
+                                            }}
+                                            className="w-full bg-[#f8faf7] border-2 border-slate-100 px-4 py-3.5 rounded-xl focus:bg-white focus:outline-none focus:border-[#2ECC8C] transition-all font-medium text-[#111F18]"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-[#111F18] ml-1">Número*</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Número ou S/N"
+                                            value={formData.numeroCasa}
+                                            onChange={(e) => updateData('numeroCasa', e.target.value)}
+                                            className="w-full bg-[#f8faf7] border-2 border-slate-100 px-4 py-3.5 rounded-xl focus:bg-white focus:outline-none focus:border-[#2ECC8C] transition-all font-medium text-[#111F18]"
+                                        />
+                                    </div>
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-[#111F18] ml-1">Estado (UF)*</label>
                                         <select
@@ -554,8 +587,8 @@ export default function PublicSimulator() {
                                 <div className="flex flex-col gap-4 pt-4">
                                     <button
                                         onClick={handleNext}
-                                        disabled={!formData.estado || !formData.cidade || Number(formData.consumo) < 50}
-                                        className="w-full bg-[#D4E44A] hover:bg-[#C0CF33] text-[#111F18] py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all hover:-translate-y-1 shadow-xl shadow-[#D4E44A]/20 group"
+                                        disabled={!formData.estado || !formData.cidade || !formData.cep || !formData.numeroCasa || Number(formData.consumo) < 50}
+                                        className="w-full bg-[#D4E44A] hover:bg-[#C0CF33] disabled:opacity-50 disabled:cursor-not-allowed text-[#111F18] py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all hover:-translate-y-1 shadow-xl shadow-[#D4E44A]/20 group"
                                     >
                                         <Calculator className="group-hover:rotate-12 transition-transform" /> Calcular Economia Agora
                                     </button>
@@ -591,7 +624,7 @@ export default function PublicSimulator() {
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="text-2xl font-black text-[#111F18] font-['Space_Grotesk']">Gerando sua Projeção Solar...</h3>
+                                <h3 className="text-2xl font-black text-[#111F18] font-['Space_Grotesk']">Gerando sua economia...</h3>
                                 <div className="flex flex-col items-center gap-4 text-slate-500 font-medium">
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 bg-[#2ECC8C] rounded-full animate-pulse"></div>
