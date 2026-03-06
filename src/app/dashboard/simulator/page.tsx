@@ -8,30 +8,58 @@ export default function SimulatorConfigPage() {
     const [consultantName, setConsultantName] = useState("Consultor Carlos");
     const [offerText, setOfferText] = useState("Descubra sua Economia Solar");
 
-    const [publicLink, setPublicLink] = useState("xpectsolar.vercel.app/s/seu-link");
-    const [iframeSnippet, setIframeSnippet] = useState(`<iframe src="https://xpectsolar.vercel.app/s/seu-link" width="100%" height="600" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></iframe>`);
     const [isCopied, setIsCopied] = useState(false);
     const [isIframeCopied, setIsIframeCopied] = useState(false);
     const [viewMode, setViewMode] = useState<"desktop" | "mobile">("mobile");
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const generatedSlug = consultantName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'seu-link';
+    const publicLink = `xpectsolar.vercel.app/s/${generatedSlug}`;
+    const iframeSnippet = `<iframe src="https://${publicLink}" width="100%" height="600" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></iframe>`;
 
     useEffect(() => {
         const loadSettings = async () => {
+            const storedOfferText = localStorage.getItem("offerText");
+            if (storedOfferText) setOfferText(storedOfferText);
+
             const { data: { user } } = await import("@/lib/supabase").then(m => m.supabase.auth.getUser());
             if (user) {
-                const { data } = await import("@/lib/supabase").then(m => m.supabase.from('consultants').select('full_name, slug').eq('id', user.id).single());
-                if (data) {
+                const { data } = await import("@/lib/supabase").then(m => m.supabase.from('consultants').select('full_name').eq('id', user.id).single());
+                if (data && data.full_name) {
                     setConsultantName(data.full_name);
-                    if (data.slug) {
-                        const link = `xpectsolar.vercel.app/s/${data.slug}`;
-                        setPublicLink(link);
-                        setIframeSnippet(`<iframe src="https://${link}" width="100%" height="600" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></iframe>`);
-                    }
                 }
             }
         };
         loadSettings();
     }, []);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            const { supabase } = await import("@/lib/supabase");
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { error } = await supabase.from('consultants').update({
+                    full_name: consultantName,
+                    slug: generatedSlug,
+                }).eq('id', user.id);
+
+                if (error) throw error;
+
+                localStorage.setItem("userFullName", consultantName);
+                localStorage.setItem("offerText", offerText);
+                window.dispatchEvent(new Event("profileUpdated"));
+
+                alert("Configurações do simulador salvas com sucesso!");
+            }
+        } catch (error: any) {
+            console.error(error);
+            alert("Erro ao salvar: " + (error?.message || "Erro desconhecido"));
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(publicLink);
@@ -90,8 +118,12 @@ export default function SimulatorConfigPage() {
                         </div>
 
                         <div className="pt-4 border-t border-slate-100 flex justify-end">
-                            <button className="bg-[#14151C] text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all">
-                                Salvar Alterações
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className="bg-[#14151C] text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all disabled:opacity-50"
+                            >
+                                {isSaving ? "Salvando..." : "Salvar Alterações"}
                             </button>
                         </div>
                     </div>
