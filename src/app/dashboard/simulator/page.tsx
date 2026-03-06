@@ -3,9 +3,11 @@
 import { Link as LinkIcon, Copy, ExternalLink, Palette, Eye, CheckCircle2, Monitor, Smartphone, Code, X, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function SimulatorConfigPage() {
     const [consultantName, setConsultantName] = useState("Consultor Carlos");
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [offerText, setOfferText] = useState("Descubra sua Economia Solar");
 
     const [isCopied, setIsCopied] = useState(false);
@@ -25,9 +27,10 @@ export default function SimulatorConfigPage() {
 
             const { data: { user } } = await import("@/lib/supabase").then(m => m.supabase.auth.getUser());
             if (user) {
-                const { data } = await import("@/lib/supabase").then(m => m.supabase.from('consultants').select('full_name').eq('id', user.id).single());
-                if (data && data.full_name) {
-                    setConsultantName(data.full_name);
+                const { data } = await import("@/lib/supabase").then(m => m.supabase.from('consultants').select('full_name, avatar_url').eq('id', user.id).single());
+                if (data) {
+                    if (data.full_name) setConsultantName(data.full_name);
+                    if (data.avatar_url) setAvatarUrl(data.avatar_url);
                 }
             }
         };
@@ -218,34 +221,62 @@ export default function SimulatorConfigPage() {
                     </div>
 
                     <div className={`transition-all duration-300 ${viewMode === 'desktop' ? 'w-full max-w-2xl bg-slate-200 p-2 rounded-xl border-[4px] border-[#14151C] shadow-2xl aspect-[16/10] relative overflow-hidden group' : 'w-full max-w-[320px] bg-slate-200 p-3 rounded-[2.5rem] border-8 border-[#14151C] shadow-2xl aspect-[9/16] relative overflow-hidden group mx-auto'}`}>
-                        <div className={`absolute inset-0 bg-white scale-[0.98] overflow-auto flex flex-col ${viewMode === 'desktop' ? 'rounded-lg' : 'rounded-[1.8rem]'}`}>
-                            {/* Branded Header Mock */}
-                            <div className="bg-[#14151C] p-6 text-center relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-[#6B8C49] rounded-full blur-[40px] opacity-20 -mr-10 -mt-10" />
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6B8C49] to-[#79F28B] mx-auto mb-2 flex items-center justify-center shadow-lg">
-                                    <Zap size={14} className="text-white" />
+                        <div className={`absolute inset-0 bg-[#F4F9F1] scale-[0.98] overflow-auto flex flex-col ${viewMode === 'desktop' ? 'rounded-lg' : 'rounded-[1.8rem]'}`}>
+                            {/* Branded Header Mock - Matching Public Simulator */}
+                            <div className="p-3">
+                                <div className="bg-[#111F18] rounded-2xl p-4 text-center relative overflow-hidden flex flex-col items-center justify-between gap-3 shadow-xl">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#2ECC8C] rounded-full blur-[40px] opacity-[0.08] -mr-10 -mt-10 pointer-events-none" />
+
+                                    <div className="relative z-10 flex items-center gap-2 bg-[#1A4A38]/30 px-3 py-1.5 rounded-xl border border-white/5 w-full justify-center">
+                                        <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-[#1A4A38] to-[#2ECC8C]/20 border border-white/10 flex items-center justify-center">
+                                            <Zap size={10} className="text-[#2ECC8C]" fill="currentColor" />
+                                        </div>
+                                        <h4 className="text-[9px] font-bold text-white tracking-tight leading-tight">
+                                            Saiba quanto você pode <span className="text-[#D4E44A]">economizar...</span>
+                                        </h4>
+                                    </div>
+
+                                    <div className="relative z-10 flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm w-full justify-center">
+                                        <div className="w-6 h-6 rounded-full bg-[#D4E44A] flex items-center justify-center shadow-lg border border-white/20 overflow-hidden shrink-0">
+                                            {avatarUrl ? (
+                                                <Image src={avatarUrl} alt={consultantName} width={24} height={24} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="font-black text-[#111F18] text-[8px]">{consultantName.substring(0, 2).toUpperCase()}</span>
+                                            )}
+                                        </div>
+                                        <div className="text-left flex items-center gap-1.5">
+                                            <p className="text-[8px] font-bold text-[#6B8F72] uppercase tracking-tighter opacity-90 leading-none">Por</p>
+                                            <p className="text-[10px] font-black text-white tracking-wide leading-none truncate max-w-[80px]">{consultantName}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <h4 className="text-sm font-bold text-white leading-tight relative">{offerText}</h4>
-                                <p className="text-[10px] text-slate-400 mt-1 relative">Oferecido por <strong className="text-white">{consultantName}</strong></p>
                             </div>
-                            {/* Form Body Mock */}
-                            <div className={`p-5 flex-1 ${viewMode === 'desktop' ? 'max-w-md mx-auto w-full pt-6' : ''}`}>
-                                <div className="space-y-4">
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[10px] font-medium text-slate-700">Seu Nome</label>
-                                        <div className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-[#EEF2DC]/30 text-xs text-slate-400">Ex: João Silva</div>
+
+                            {/* Form Body Mock - Compact with new fields */}
+                            <div className={`px-5 py-4 flex-1 ${viewMode === 'desktop' ? 'max-w-md mx-auto w-full' : ''}`}>
+                                <div className="bg-white rounded-3xl p-5 border border-[#D8EDD5] shadow-sm space-y-4">
+                                    <h3 className="text-xs font-black text-[#111F18] text-center">{offerText}</h3>
+                                    <div className="space-y-3">
+                                        <div className="space-y-1">
+                                            <div className="w-full px-3 py-2 rounded-xl border border-transparent bg-[#f1f8ee] text-[10px] text-slate-400 font-medium">Seu Nome</div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="w-full px-3 py-2 rounded-xl border border-transparent bg-[#f1f8ee] text-[10px] text-slate-400 font-medium">(00) 00000-0000</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="w-full px-3 py-2 rounded-xl border border-transparent bg-[#f1f8ee] text-[10px] text-slate-400 font-medium">CEP</div>
+                                            <div className="w-full px-3 py-2 rounded-xl border border-transparent bg-[#f1f8ee] text-[10px] text-slate-400 font-medium">Nº</div>
+                                        </div>
+                                        <div className="pt-2">
+                                            <div className="h-1 w-full bg-[#EEF2F6] rounded-full relative">
+                                                <div className="absolute inset-y-0 left-0 w-1/3 bg-[#D4E44A] rounded-full"></div>
+                                                <div className="absolute -top-1.5 left-1/3 w-4 h-4 bg-white border border-[#D4E44A] rounded-full shadow-sm"></div>
+                                            </div>
+                                        </div>
+                                        <button className="w-full bg-[#D4E44A] text-[#111F18] font-black py-3 rounded-xl shadow-lg shadow-[#D4E44A]/20 text-[10px] uppercase tracking-wider cursor-default">
+                                            Calcular Economia
+                                        </button>
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[10px] font-medium text-slate-700">WhatsApp</label>
-                                        <div className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-[#EEF2DC]/30 text-xs text-slate-400">(00) 00000-0000</div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[10px] font-medium text-slate-700">Conta de Luz Média</label>
-                                        <div className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-[#EEF2DC]/30 text-xs text-slate-400">R$ 500</div>
-                                    </div>
-                                    <button className="w-full bg-[#14151C] text-[#D0F252] font-bold py-3 mt-4 rounded-xl shadow-lg border-b-4 border-black/50 text-xs hover:-translate-y-0.5 transition-transform cursor-default">
-                                        Descobrir Economia
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -280,33 +311,71 @@ export default function SimulatorConfigPage() {
                         </div>
 
                         <div className={`transition-all duration-300 w-full ${viewMode === 'desktop' ? 'max-w-4xl bg-slate-200 p-2 rounded-2xl border-[6px] border-[#14151C] shadow-2xl aspect-[16/9] relative overflow-hidden group' : 'max-w-[375px] bg-slate-200 p-3 rounded-[3rem] border-[12px] border-[#14151C] shadow-2xl aspect-[9/19] relative overflow-hidden group mx-auto'}`}>
-                            <div className={`absolute inset-0 bg-white scale-[0.98] overflow-auto flex flex-col ${viewMode === 'desktop' ? 'rounded-xl' : 'rounded-[2rem]'}`}>
-                                {/* Branded Header Mock */}
-                                <div className="bg-[#14151C] p-8 text-center relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#6B8C49] rounded-full blur-[80px] opacity-20 -mr-20 -mt-20" />
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#6B8C49] to-[#79F28B] mx-auto mb-4 flex items-center justify-center shadow-lg">
-                                        <Zap size={24} className="text-white" />
+                            <div className={`absolute inset-0 bg-[#F4F9F1] scale-[0.98] overflow-auto flex flex-col ${viewMode === 'desktop' ? 'rounded-xl' : 'rounded-[2rem]'}`}>
+                                {/* Branded Header Mock - FULL SIZE */}
+                                <div className="p-4 md:p-6">
+                                    <div className="bg-[#111F18] rounded-[2rem] p-6 md:p-10 text-center relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+                                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#2ECC8C] rounded-full blur-[80px] opacity-[0.08] -mr-20 -mt-20 pointer-events-none" />
+
+                                        <div className="relative z-10 flex items-center gap-4 bg-[#1A4A38]/30 px-6 py-4 rounded-2xl border border-white/5">
+                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#1A4A38] to-[#2ECC8C]/20 border border-white/10 flex items-center justify-center">
+                                                <Zap size={20} className="text-[#2ECC8C]" fill="currentColor" />
+                                            </div>
+                                            <h4 className="text-base md:text-xl font-bold text-white tracking-tight">
+                                                Saiba quanto você pode <span className="text-[#D4E44A]">economizar...</span>
+                                            </h4>
+                                        </div>
+
+                                        <div className="relative z-10 flex items-center gap-4 px-5 py-3 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm shadow-xl shrink-0">
+                                            <div className="w-12 h-12 rounded-full bg-[#D4E44A] flex items-center justify-center shadow-lg border-2 border-white/20 overflow-hidden shrink-0">
+                                                {avatarUrl ? (
+                                                    <Image src={avatarUrl} alt={consultantName} width={48} height={48} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="font-black text-[#111F18] text-sm">{consultantName.substring(0, 2).toUpperCase()}</span>
+                                                )}
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-bold text-[#6B8F72] uppercase tracking-tighter opacity-90 leading-none mb-1">Oferecido por</p>
+                                                <p className="text-lg font-black text-white tracking-wide leading-none">{consultantName}</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <h4 className="text-2xl font-bold text-white leading-tight relative">{offerText}</h4>
-                                    <p className="text-sm text-slate-400 mt-2 relative">Oferecido por <strong className="text-white">{consultantName}</strong></p>
                                 </div>
-                                {/* Form Body Mock */}
-                                <div className={`p-8 space-y-5 flex-1 ${viewMode === 'desktop' ? 'max-w-xl mx-auto pt-10 w-full' : ''}`}>
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-slate-700">Seu Nome</label>
-                                        <div className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#EEF2DC]/30 text-sm text-slate-400">Ex: João Silva</div>
+
+                                {/* Form Body Mock - FULL SIZE */}
+                                <div className={`px-4 md:px-12 py-8 flex-1 ${viewMode === 'desktop' ? 'max-w-3xl mx-auto w-full pt-10' : ''}`}>
+                                    <div className="bg-white rounded-[2.5rem] p-8 md:p-12 border border-[#D8EDD5] shadow-2xl space-y-8">
+                                        <div className="text-center space-y-2">
+                                            <div className="inline-flex items-center px-3 py-1 bg-[#EEF2DC] text-[#1A4A38] text-[10px] font-bold tracking-widest uppercase rounded-full">Simulador Ativo ⚡️</div>
+                                            <h3 className="text-2xl md:text-4xl font-black text-[#111F18] leading-tight">{offerText}</h3>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                <div className="w-full bg-[#f1f8ee] border-2 border-transparent px-6 py-4 rounded-2xl font-medium text-slate-400">Seu Nome</div>
+                                                <div className="w-full bg-[#f1f8ee] border-2 border-transparent px-6 py-4 rounded-2xl font-medium text-slate-400">WhatsApp</div>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <div className="col-span-2 w-full bg-[#f1f8ee] border-2 border-transparent px-6 py-4 rounded-2xl font-medium text-slate-400">CEP</div>
+                                                <div className="col-span-1 w-full bg-[#f1f8ee] border-2 border-transparent px-6 py-4 rounded-2xl font-medium text-slate-400">Nº</div>
+                                            </div>
+
+                                            <div className="space-y-4 pt-4">
+                                                <div className="flex justify-between text-sm font-bold text-[#1A4A38]">
+                                                    <span>Consumo Médio</span>
+                                                    <span className="bg-[#EEF2DC] px-4 py-1 rounded-full border border-[#D4E44A]/30">450 kWh/mês</span>
+                                                </div>
+                                                <div className="h-3 w-full bg-[#EEF2F6] rounded-full relative">
+                                                    <div className="absolute inset-y-0 left-0 w-2/5 bg-[#D4E44A] rounded-full"></div>
+                                                    <div className="absolute -top-2 left-2/5 w-7 h-7 bg-white border-2 border-[#D4E44A] rounded-full shadow-lg"></div>
+                                                </div>
+                                            </div>
+
+                                            <button className="w-full bg-[#D4E44A] text-[#111F18] py-6 rounded-[2rem] font-black text-2xl flex items-center justify-center gap-3 shadow-2xl shadow-[#D4E44A]/30 cursor-default">
+                                                Calcular Economia
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-slate-700">WhatsApp</label>
-                                        <div className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#EEF2DC]/30 text-sm text-slate-400">(00) 00000-0000</div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-slate-700">Conta de Luz Média</label>
-                                        <div className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#EEF2DC]/30 text-sm text-slate-400">R$ 500</div>
-                                    </div>
-                                    <button className="w-full bg-[#14151C] text-[#D0F252] font-extrabold py-4 mt-8 rounded-xl shadow-xl shadow-[#14151C]/20 border-b-4 border-black/50 text-base uppercase tracking-widest hover:-translate-y-0.5 transition-transform cursor-default">
-                                        Descobrir Economia
-                                    </button>
                                 </div>
                             </div>
                         </div>
