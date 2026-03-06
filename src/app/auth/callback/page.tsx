@@ -9,31 +9,14 @@ export default function AuthCallbackPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const handleCallback = async () => {
-            // No fluxo PKCE do Supabase, o cliente (supabase-js) detecta o código na URL
-            // e faz a troca pela sessão automaticamente quando você chama getSession ou onAuthStateChange.
-            const { data: { session }, error } = await supabase.auth.getSession();
-
-            if (error) {
-                console.error("Erro na autenticação:", error);
-                router.push("/login?error=" + error.message);
-                return;
-            }
-
-            if (!session) {
-                // Pode ser que o link expirou ou o carregamento ainda não terminou
-                // Vamos dar um pequeno delay e tentar novamente antes de desistir
-                return;
-            }
-
-            const user = session.user;
-
+        let isMounted = true;
+        const processUser = async (user: any) => {
             try {
                 // 1. Verificar se o consultor já existe
                 const { data: existingConsultant } = await supabase
                     .from("consultants")
                     .select("id")
-                    .eq("user_id", user.id)
+                    .eq("id", user.id)
                     .single();
 
                 if (!existingConsultant) {
@@ -48,7 +31,7 @@ export default function AuthCallbackPage() {
                         + "-" + Math.floor(Math.random() * 1000);
 
                     await supabase.from("consultants").insert({
-                        user_id: user.id,
+                        id: user.id,
                         full_name: fullName,
                         email: user.email,
                         whatsapp_number: "00000000000",
@@ -56,17 +39,45 @@ export default function AuthCallbackPage() {
                         company_name: "Xpect Solar"
                     });
                 }
-
-                // 3. Sucesso! Redirecionar para o Dashboard
-                router.push("/dashboard");
-                router.refresh();
+                if (isMounted) {
+                    router.push("/dashboard");
+                    router.refresh();
+                }
             } catch (err) {
                 console.error("Erro ao processar perfil:", err);
-                router.push("/dashboard");
+                if (isMounted) router.push("/dashboard");
+            }
+        };
+
+        const handleCallback = async () => {
+            const { data: { session }, error } = await supabase.auth.getSession();
+
+            if (error) {
+                console.error("Erro na autenticação:", error);
+                router.push("/login?error=" + error.message);
+                return;
+            }
+
+            if (session?.user) {
+                processUser(session.user);
+            } else {
+                // It might take a moment to parse PKCE response
+                const { data: authListener } = supabase.auth.onAuthStateChange(
+                    async (event, session) => {
+                        if (session?.user) {
+                            processUser(session.user);
+                        }
+                    }
+                );
+                return () => authListener.subscription.unsubscribe();
             }
         };
 
         handleCallback();
+
+        return () => {
+            isMounted = false;
+        };
     }, [router]);
 
     return (
