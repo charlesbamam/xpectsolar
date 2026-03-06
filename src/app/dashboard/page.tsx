@@ -6,12 +6,28 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
+interface Lead {
+    id: string;
+    name: string;
+    email?: string;
+    city_state?: string;
+    score?: string;
+    estimated_savings?: number;
+    created_at: string;
+}
+
+interface Consultant {
+    slug?: string;
+    full_name: string;
+}
+
 export default function DashboardIndex() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showBanner, setShowBanner] = useState(true);
 
-    const [leads, setLeads] = useState<any[]>([]);
+    const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
+    const [hasSimulator, setHasSimulator] = useState<boolean>(true);
 
     useEffect(() => {
         const fetchLeads = async () => {
@@ -20,17 +36,28 @@ export default function DashboardIndex() {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
-                const { data, error } = await supabase
+                const { data: leadData, error: leadError } = await supabase
                     .from('leads')
                     .select('*')
                     .eq('consultant_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(5);
+                    .order('created_at', { ascending: false });
 
-                if (error) throw error;
-                if (data) setLeads(data);
+                if (leadError) throw leadError;
+                if (leadData) setLeads(leadData as Lead[]); // Cast to Lead[]
+
+                const { data: consultant } = await supabase
+                    .from('consultants')
+                    .select('slug, full_name')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (consultant) {
+                    setHasSimulator(!!(consultant as Consultant).slug); // Cast to Consultant
+                } else {
+                    setHasSimulator(false);
+                }
             } catch (err) {
-                console.error("Erro ao buscar leads:", err);
+                console.error("Erro no fetch do dashboard:", err);
             } finally {
                 setLoading(false);
             }
@@ -61,6 +88,15 @@ export default function DashboardIndex() {
     const qualifiedLeads = leads.filter(l => l.score === 'A' || l.score === 'B').length;
     const qualifiedPercent = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0;
 
+    // Estatísticas reais para o gráfico de barras laterais
+    const scoreA = leads.filter(l => l.score === 'A').length;
+    const scoreB = leads.filter(l => l.score === 'B').length;
+    const scoreC = leads.filter(l => l.score === 'C').length;
+
+    const percentA = totalLeads > 0 ? Math.round((scoreA / totalLeads) * 100) : 0;
+    const percentB = totalLeads > 0 ? Math.round((scoreB / totalLeads) * 100) : 0;
+    const percentC = totalLeads > 0 ? Math.round((scoreC / totalLeads) * 100) : 0;
+
     // Calcular leads de hoje
     const today = new Date().toISOString().split('T')[0];
     const leadsToday = leads.filter(l => l.created_at.startsWith(today)).length;
@@ -68,40 +104,61 @@ export default function DashboardIndex() {
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-10">
             {/* System Banner (Controlled via Super Admin) */}
-            {showBanner && (
-                <div className="bg-blue-600 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-blue-600/20 text-white relative overflow-hidden">
+            {/* Alerta de Criar Simulador (Apenas se não tiver slug) */}
+            {!loading && !hasSimulator && (
+                <div className="bg-[#14151C] rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl shadow-black/20 text-white relative overflow-hidden border border-white/5">
                     {/* Decorative Elements */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
-                    <div className="absolute bottom-0 left-20 w-40 h-40 bg-black/10 rounded-full blur-[60px] -mb-20"></div>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#D0F252]/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
 
+                    <div className="flex items-start md:items-center gap-5 relative z-10 w-full pr-8">
+                        <div className="p-4 bg-[#D0F252] rounded-2xl shrink-0 shadow-[0_0_20px_rgba(208,242,82,0.3)]">
+                            <Zap size={28} className="text-[#14151C]" fill="currentColor" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-[#D0F252] px-2 py-0.5 rounded text-[#14151C]">Ação Necessária</span>
+                                <h3 className="font-black text-lg md:text-xl text-white tracking-tight">Ative seu Simulador Solar</h3>
+                            </div>
+                            <p className="text-slate-400 text-sm max-w-2xl leading-relaxed font-medium">
+                                Você ainda não criou seu link de divulgação. Configure seu simulador agora para começar a captar leads qualificados automaticamente.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 relative z-10 w-full md:w-auto shrink-0">
+                        <Link href="/dashboard/simulator" className="w-full md:w-auto px-8 py-4 bg-[#D0F252] text-[#14151C] hover:bg-[#b8d641] font-black text-sm rounded-xl transition-all shadow-lg shadow-[#D0F252]/20 hover:-translate-y-1 active:scale-95 text-center uppercase tracking-wider">
+                            Criar meu simulador agora
+                        </Link>
+                    </div>
+                </div>
+            )}
+
+            {/* System Banner - V2 Features (Show if simulator exists) */}
+            {hasSimulator && showBanner && (
+                <div className="bg-blue-600 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-blue-600/20 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
                     <div className="flex items-start md:items-center gap-4 relative z-10 w-full pr-8">
                         <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm shrink-0">
                             <Info size={24} className="text-white" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded text-white">Novo Recurso</span>
-                                <h3 className="font-bold text-base md:text-lg text-white leading-tight">Atualização Xpect Solar v2</h3>
+                                <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded text-white">Nova Versão</span>
+                                <h3 className="font-bold text-base md:text-lg text-white leading-tight">Xpect Solar v2.0 disponível</h3>
                             </div>
                             <p className="text-blue-100 text-sm max-w-2xl leading-relaxed">
-                                Agora você pode personalizar as cores, logotipo e identidade visual do seu simulador solar de ponta a ponta nas Configurações.
+                                Personalize cores, logos e veja leads com CEP e número da residência capturados em tempo real.
                             </p>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-3 relative z-10 w-full md:w-auto mt-2 md:mt-0 md:mr-8">
-                        <Link href="/dashboard/simulator" className="w-full md:w-auto px-5 py-2.5 bg-white text-blue-600 hover:bg-blue-50 font-bold text-sm rounded-xl transition-colors shadow-sm whitespace-nowrap text-center">
-                            Configurar Agora
+                    <div className="flex items-center gap-3 relative z-10 w-full md:w-auto">
+                        <Link href="/dashboard/simulator" className="w-full md:w-auto px-5 py-2.5 bg-white text-blue-600 hover:bg-blue-50 font-bold text-sm rounded-xl transition-colors">
+                            Personalizar
                         </Link>
+                        <button onClick={() => setShowBanner(false)} className="p-2.5 hover:bg-white/10 rounded-xl">
+                            <X size={20} />
+                        </button>
                     </div>
-
-                    <button
-                        onClick={() => setShowBanner(false)}
-                        className="absolute top-4 right-4 p-1.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors z-20"
-                        title="Fechar aviso"
-                    >
-                        <X size={22} strokeWidth={2.5} />
-                    </button>
                 </div>
             )}
 
@@ -200,14 +257,23 @@ export default function DashboardIndex() {
                     </div>
 
                     <div className="flex-1 flex flex-col justify-center gap-6">
-                        <ScoreBar score="A" label="Alta Viabilidade" percentage={65} color="bg-[#6B8C49]" />
-                        <ScoreBar score="B" label="Viabilidade Média" percentage={25} color="bg-orange-500" />
-                        <ScoreBar score="C" label="Baixa/Inviável" percentage={10} color="bg-red-500" />
+                        {totalLeads > 0 ? (
+                            <>
+                                <ScoreBar score="A" label="Alta Viabilidade" percentage={percentA} color="bg-[#6B8C49]" />
+                                <ScoreBar score="B" label="Viabilidade Média" percentage={percentB} color="bg-orange-500" />
+                                <ScoreBar score="C" label="Baixa/Inviável" percentage={percentC} color="bg-red-500" />
+                            </>
+                        ) : (
+                            <div className="text-center py-4">
+                                <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Sem dados para análise</p>
+                                <p className="text-[10px] text-slate-300 font-medium">Capture leads para ver a classificação</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-6 pt-4 border-t border-slate-100">
                         <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                            <strong className="text-[#14151C]">Dica:</strong> Foque seus esforços de prospecção ativa nos 65% de leads com Score A, eles possuem as maiores taxas de fechamento.
+                            <strong className="text-[#14151C]">Análise em tempo real:</strong> {totalLeads > 0 ? `Atualmente, ${percentA}% dos seus leads possuem alto potencial técnico.` : 'Aguardando primeiros leads para processamento estatístico.'}
                         </p>
                     </div>
                 </div>
@@ -275,7 +341,7 @@ export default function DashboardIndex() {
                                         location={lead.city_state || "Não informado"}
                                         date={formatDate(lead.created_at)}
                                         score={lead.score as "A" | "B" | "C"}
-                                        savings={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_savings)}
+                                        savings={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_savings || 0)}
                                     />
                                 ))
                             ) : (
