@@ -79,8 +79,9 @@ export default function SettingsPage() {
             window.dispatchEvent(new Event("profileUpdated"));
 
             alert("Sua página pública foi atualizada com sucesso!");
-        } catch (error: any) {
-            alert("Erro ao salvar perfil, detalhe técnico: " + (error?.message || JSON.stringify(error)));
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : JSON.stringify(error);
+            alert("Erro ao salvar perfil, detalhe técnico: " + msg);
             console.error(error);
         } finally {
             setIsSaving(false);

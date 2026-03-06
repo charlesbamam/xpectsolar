@@ -40,12 +40,26 @@ export default function SimulatorConfigPage() {
             const { supabase } = await import("@/lib/supabase");
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                const { error } = await supabase.from('consultants').update({
-                    full_name: consultantName,
-                    slug: generatedSlug,
-                }).eq('id', user.id);
+                // Checa se já existe o registro deste usuário
+                const { data: existing } = await supabase.from('consultants').select('id').eq('id', user.id).single();
 
-                if (error) throw error;
+                if (!existing) {
+                    // Se não existia, insere com campos obrigatórios
+                    const { error } = await supabase.from('consultants').insert({
+                        id: user.id,
+                        full_name: consultantName,
+                        slug: generatedSlug,
+                        whatsapp_number: "00000000000" // Valor padrão para passar constraint
+                    });
+                    if (error) throw error;
+                } else {
+                    // Se existe, faz um update
+                    const { error } = await supabase.from('consultants').update({
+                        full_name: consultantName,
+                        slug: generatedSlug,
+                    }).eq('id', user.id);
+                    if (error) throw error;
+                }
 
                 localStorage.setItem("userFullName", consultantName);
                 localStorage.setItem("offerText", offerText);
@@ -53,9 +67,10 @@ export default function SimulatorConfigPage() {
 
                 alert("Configurações do simulador salvas com sucesso!");
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            alert("Erro ao salvar: " + (error?.message || "Erro desconhecido"));
+            const msg = error instanceof Error ? error.message : "Erro desconhecido";
+            alert("Erro ao salvar: " + msg);
         } finally {
             setIsSaving(false);
         }
