@@ -13,6 +13,7 @@ export default function SettingsPage() {
     const [email, setEmail] = useState("");
     const [whatsapp, setWhatsapp] = useState("");
     const [slug, setSlug] = useState("");
+    const [activeTab, setActiveTab] = useState<"profile" | "security" | "notifications">("profile");
     const [isSaving, setIsSaving] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -119,188 +120,245 @@ export default function SettingsPage() {
             <div className="grid md:grid-cols-4 gap-8">
                 {/* Navigation (Internal) */}
                 <div className="md:col-span-1 space-y-1">
-                    <SettingsNavItem icon={<User size={18} />} label="Perfil & Página" active />
-                    <SettingsNavItem icon={<Shield size={18} />} label="Segurança" />
-                    <SettingsNavItem icon={<Bell size={18} />} label="Notificações" />
+                    <SettingsNavItem
+                        icon={<User size={18} />}
+                        label="Perfil & Página"
+                        active={activeTab === "profile"}
+                        onClick={() => setActiveTab("profile")}
+                    />
+                    <SettingsNavItem
+                        icon={<Shield size={18} />}
+                        label="Segurança"
+                        active={activeTab === "security"}
+                        onClick={() => setActiveTab("security")}
+                    />
+                    <SettingsNavItem
+                        icon={<Bell size={18} />}
+                        label="Notificações"
+                        active={activeTab === "notifications"}
+                        onClick={() => setActiveTab("notifications")}
+                    />
                 </div>
 
                 {/* Content */}
                 <div className="md:col-span-3 space-y-6">
-                    {/* Profile Section */}
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-[#FDFDFD]">
-                            <h3 className="font-bold text-[#14151C]">Página Dinâmica Pública</h3>
-                            <button
-                                className="flex items-center gap-2 bg-[#14151C] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-black transition-all disabled:opacity-50"
-                                onClick={handleSaveProfile}
-                                disabled={isSaving}
-                            >
-                                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                {isSaving ? "Salvando..." : "Salvar e Publicar"}
-                            </button>
-                        </div>
-
-                        <div className="p-8 space-y-8">
-                            {/* Avatar Upload */}
-                            <div className="flex items-center gap-6">
-                                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                    <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-200 group-hover:border-[#6B8C49] transition-colors overflow-hidden">
-                                        {avatarUrl ? (
-                                            /* eslint-disable-next-line @next/next/no-img-element */
-                                            <img src={avatarUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <User size={40} className="text-slate-300 group-hover:text-[#6B8C49] transition-colors" />
-                                        )}
-                                    </div>
-                                    <button className="absolute bottom-0 right-0 p-2 bg-[#14151C] text-white rounded-full border-2 border-white shadow-lg transform group-hover:scale-110 transition-transform">
-                                        <Camera size={14} />
-                                    </button>
-                                    <input
-                                        type="file"
-                                        accept="image/png, image/jpeg, image/gif"
-                                        className="hidden"
-                                        ref={fileInputRef}
-                                        onChange={handleAvatarChange}
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <h4 className="font-bold text-[#14151C]">Sua Foto Profissional</h4>
-                                    <p className="text-xs text-slate-500">JPG ou PNG. (Seu cliente verá essa foto)</p>
-                                    <div className="flex gap-2 mt-2">
-                                        {avatarUrl && (
-                                            <button
-                                                className="text-[10px] font-bold text-red-500 hover:text-red-600 uppercase tracking-wider bg-red-50 px-2 py-1 rounded"
-                                                onClick={handleRemoveAvatar}
-                                            >
-                                                Remover
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Form Grid */}
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome de Consultor (Público)</label>
-                                    <div className="relative">
-                                        <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input
-                                            type="text"
-                                            value={fullName}
-                                            onChange={(e) => {
-                                                if (e.target.value.length <= 40) setFullName(e.target.value);
-                                            }}
-                                            maxLength={40}
-                                            placeholder="Ex: Carlos Eduardo"
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14151C]/10 transition-all font-medium text-[#14151C]"
-                                        />
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 mt-1">Máximo de 40 caracteres.</p>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">WhatsApp de Vendas</label>
-                                    <div className="relative">
-                                        <MessageCircle size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input
-                                            type="text"
-                                            value={whatsapp}
-                                            onChange={(e) => {
-                                                // Bloqueia qualquer coisa que não seja número na hora da digitação
-                                                const apenasNumeros = e.target.value.replace(/\D/g, '');
-                                                if (apenasNumeros.length <= 11) setWhatsapp(apenasNumeros);
-                                            }}
-                                            maxLength={11}
-                                            placeholder="Ex: 11999999999"
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14151C]/10 transition-all font-medium text-[#14151C]"
-                                        />
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 mt-1">Coloque apenas números com DDD (Ex: 11999999999).</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-[#6B8C49] uppercase tracking-wider">Identificador Único (O seu Link)</label>
-                                    <div className="relative">
-                                        <LinkIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input
-                                            type="text"
-                                            value={slug}
-                                            onChange={(e) => {
-                                                // Força letras minúsculas sem espaços ou acentos
-                                                const linkLimpo = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-                                                if (linkLimpo.length <= 30) setSlug(linkLimpo);
-                                            }}
-                                            maxLength={30}
-                                            placeholder="ex: consultor-carlos"
-                                            className="w-full pl-10 pr-4 py-3 bg-[#EEF2DC]/30 border border-[#6B8C49]/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6B8C49]/30 transition-all font-bold text-[#14151C]"
-                                        />
-                                    </div>
-                                    <p className="text-[10px] font-medium text-slate-500 mt-1">
-                                        Seu simulador ficará em: <span className="font-bold text-[#14151C]">xpectsolar.com/s/{slug || 'nome'}</span>
-                                    </p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">E-mail de Login</label>
-                                    <div className="relative">
-                                        <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => {
-                                                if (e.target.value.length <= 60) setEmail(e.target.value);
-                                            }}
-                                            maxLength={60}
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14151C]/10 transition-all font-medium text-[#14151C]"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Security Section (Compact) */}
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-50 bg-slate-50/50">
-                            <h3 className="font-bold text-[#14151C]">Senha e Acesso</h3>
-                        </div>
-                        <div className="p-8 space-y-6">
-                            <div className="space-y-2 max-w-md">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nova Senha</label>
-                                <div className="relative">
-                                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="••••••••••••"
-                                        className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14151C]/10 transition-all font-medium text-[#14151C]"
-                                    />
+                    {activeTab === "profile" && (
+                        <>
+                            {/* Profile Section */}
+                            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-[#FDFDFD]">
+                                    <h3 className="font-bold text-[#14151C]">Página Dinâmica Pública</h3>
                                     <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        className="flex items-center gap-2 bg-[#14151C] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-black transition-all disabled:opacity-50"
+                                        onClick={handleSaveProfile}
+                                        disabled={isSaving}
                                     >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                        {isSaving ? "Salvando..." : "Salvar e Publicar"}
                                     </button>
                                 </div>
-                                <p className="text-[10px] text-slate-400">Use pelo menos 8 caracteres com letras e números.</p>
+
+                                <div className="p-8 space-y-8">
+                                    {/* Avatar Upload */}
+                                    <div className="flex items-center gap-6">
+                                        <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                                            <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-200 group-hover:border-[#6B8C49] transition-colors overflow-hidden">
+                                                {avatarUrl ? (
+                                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                                    <img src={avatarUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <User size={40} className="text-slate-300 group-hover:text-[#6B8C49] transition-colors" />
+                                                )}
+                                            </div>
+                                            <button className="absolute bottom-0 right-0 p-2 bg-[#14151C] text-white rounded-full border-2 border-white shadow-lg transform group-hover:scale-110 transition-transform">
+                                                <Camera size={14} />
+                                            </button>
+                                            <input
+                                                type="file"
+                                                accept="image/png, image/jpeg, image/gif"
+                                                className="hidden"
+                                                ref={fileInputRef}
+                                                onChange={handleAvatarChange}
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h4 className="font-bold text-[#14151C]">Sua Foto Profissional</h4>
+                                            <p className="text-xs text-slate-500">JPG ou PNG. (Seu cliente verá essa foto)</p>
+                                            <div className="flex gap-2 mt-2">
+                                                {avatarUrl && (
+                                                    <button
+                                                        className="text-[10px] font-bold text-red-500 hover:text-red-600 uppercase tracking-wider bg-red-50 px-2 py-1 rounded"
+                                                        onClick={handleRemoveAvatar}
+                                                    >
+                                                        Remover
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Form Grid */}
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome de Consultor (Público)</label>
+                                            <div className="relative">
+                                                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input
+                                                    type="text"
+                                                    value={fullName}
+                                                    onChange={(e) => {
+                                                        if (e.target.value.length <= 40) setFullName(e.target.value);
+                                                    }}
+                                                    maxLength={40}
+                                                    placeholder="Ex: Carlos Eduardo"
+                                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14151C]/10 transition-all font-medium text-[#14151C]"
+                                                />
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 mt-1">Máximo de 40 caracteres.</p>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">WhatsApp de Vendas</label>
+                                            <div className="relative">
+                                                <MessageCircle size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input
+                                                    type="text"
+                                                    value={whatsapp}
+                                                    onChange={(e) => {
+                                                        const apenasNumeros = e.target.value.replace(/\D/g, '');
+                                                        if (apenasNumeros.length <= 11) setWhatsapp(apenasNumeros);
+                                                    }}
+                                                    maxLength={11}
+                                                    placeholder="Ex: 11999999999"
+                                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14151C]/10 transition-all font-medium text-[#14151C]"
+                                                />
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 mt-1">Coloque apenas números com DDD (Ex: 11999999999).</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-[#6B8C49] uppercase tracking-wider">Identificador Único (O seu Link)</label>
+                                            <div className="relative">
+                                                <LinkIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input
+                                                    type="text"
+                                                    value={slug}
+                                                    onChange={(e) => {
+                                                        const linkLimpo = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                                                        if (linkLimpo.length <= 30) setSlug(linkLimpo);
+                                                    }}
+                                                    maxLength={30}
+                                                    placeholder="ex: consultor-carlos"
+                                                    className="w-full pl-10 pr-4 py-3 bg-[#EEF2DC]/30 border border-[#6B8C49]/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6B8C49]/30 transition-all font-bold text-[#14151C]"
+                                                />
+                                            </div>
+                                            <p className="text-[10px] font-medium text-slate-500 mt-1">
+                                                Seu simulador ficará em: <span className="font-bold text-[#14151C]">xpectsolar.com/s/{slug || 'nome'}</span>
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">E-mail de Login</label>
+                                            <div className="relative">
+                                                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input
+                                                    type="email"
+                                                    value={email}
+                                                    onChange={(e) => {
+                                                        if (e.target.value.length <= 60) setEmail(e.target.value);
+                                                    }}
+                                                    maxLength={60}
+                                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14151C]/10 transition-all font-medium text-[#14151C]"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <button className="text-sm font-bold text-slate-500 hover:text-[#14151C] transition-colors">Alterar Senha de Acesso</button>
+                        </>
+                    )}
+
+                    {activeTab === "security" && (
+                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                                <h3 className="font-bold text-[#14151C]">Senha e Acesso</h3>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-2 max-w-md">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nova Senha</label>
+                                    <div className="relative">
+                                        <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="••••••••••••"
+                                            className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14151C]/10 transition-all font-medium text-[#14151C]"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400">Use pelo menos 8 caracteres com letras e números.</p>
+                                </div>
+                                <button className="bg-[#14151C] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all">
+                                    Alterar Senha
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {activeTab === "notifications" && (
+                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                                <h3 className="font-bold text-[#14151C]">Preferências de Notificação</h3>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-4">
+                                    <NotificationToggle label="Novos Leads por E-mail" description="Receba um aviso quando alguém finalizar uma simulação." />
+                                    <NotificationToggle label="Relatório Semanal" description="Resumo do desempenho do seu simulador." />
+                                    <NotificationToggle label="Alertas do Sistema" description="Avisos sobre manutenções ou novas funcionalidades." />
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     );
 }
 
-function SettingsNavItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
+function SettingsNavItem({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick: () => void }) {
     return (
-        <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${active
-            ? "bg-white text-[#14151C] shadow-sm border border-slate-100"
-            : "text-slate-500 hover:bg-white/60 hover:text-[#14151C]"
-            }`}>
+        <button
+            type="button"
+            onClick={onClick}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${active
+                ? "bg-white text-[#14151C] shadow-sm border border-slate-100"
+                : "text-slate-500 hover:bg-white/60 hover:text-[#14151C]"
+                }`}
+        >
             {icon}
             {label}
         </button>
+    );
+}
+
+function NotificationToggle({ label, description }: { label: string, description: string }) {
+    const [enabled, setEnabled] = useState(true);
+    return (
+        <div className="flex items-center justify-between py-2">
+            <div>
+                <p className="text-sm font-bold text-[#14151C]">{label}</p>
+                <p className="text-xs text-slate-500">{description}</p>
+            </div>
+            <button
+                onClick={() => setEnabled(!enabled)}
+                className={`w-10 h-5 rounded-full transition-all relative ${enabled ? 'bg-[#D4E44A]' : 'bg-slate-200'}`}
+            >
+                <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${enabled ? 'left-6' : 'left-1'}`} />
+            </button>
+        </div>
     );
 }

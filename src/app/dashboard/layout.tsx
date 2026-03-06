@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Calculator, CreditCard, Settings, LogOut, Bell, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const router = useRouter();
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [fullName, setFullName] = useState<string>("Consultor Solar");
 
@@ -29,9 +28,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }, []);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push("/login");
-        router.refresh();
+        try {
+            await supabase.auth.signOut();
+            // Limpa todos os dados locais para garantir segurança
+            localStorage.clear();
+            sessionStorage.clear();
+            // Redireciona via window.location para garantir limpeza de estado do Next.js
+            window.location.href = "/login";
+        } catch (error) {
+            console.error("Erro ao sair:", error);
+            window.location.href = "/login";
+        }
     };
 
     return (
@@ -63,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="flex items-center gap-3 px-2 py-2">
                         <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                             {avatarUrl ? (
-                                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                <Image src={avatarUrl} alt="Avatar" width={36} height={36} className="w-full h-full object-cover" unoptimized />
                             ) : (
                                 <User size={18} className="text-slate-500" />
                             )}
