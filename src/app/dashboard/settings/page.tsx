@@ -16,6 +16,15 @@ export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<"profile" | "security" | "notifications">("profile");
     const [isSaving, setIsSaving] = useState(false);
 
+    // Estados para Senha
+    const [newPassword, setNewPassword] = useState("");
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+    // Estados para Notificações
+    const [notifyNewLeads, setNotifyNewLeads] = useState(true);
+    const [notifyWeeklyReport, setNotifyWeeklyReport] = useState(true);
+    const [notifySystemAlerts, setNotifySystemAlerts] = useState(true);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -31,6 +40,11 @@ export default function SettingsPage() {
                     setWhatsapp(data.whatsapp_number);
                     setSlug(data.slug);
                     setAvatarUrl(data.avatar_url);
+
+                    // Carrega preferências de notificação
+                    setNotifyNewLeads(data.notify_new_leads_email ?? true);
+                    setNotifyWeeklyReport(data.notify_weekly_report ?? true);
+                    setNotifySystemAlerts(data.notify_system_alerts ?? true);
 
                     // Sincroniza cache local e UI
                     localStorage.setItem("consultantId", data.id);
@@ -62,30 +76,57 @@ export default function SettingsPage() {
         setIsSaving(true);
         try {
             const payload = {
-                id: user.id, // Garante que o ID do Auth seja o ID do consultor
+                id: user.id,
                 slug: slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-'),
                 full_name: fullName,
                 email: email,
                 whatsapp_number: whatsapp,
-                avatar_url: avatarUrl
+                avatar_url: avatarUrl,
+                notify_new_leads_email: notifyNewLeads,
+                notify_weekly_report: notifyWeeklyReport,
+                notify_system_alerts: notifySystemAlerts
             };
 
-            // Tenta dar um upsert (insere se não existe, atualiza se existe)
             const { error } = await supabase.from('consultants').upsert(payload);
             if (error) throw error;
 
-            // Reflete no Sidebar Local
             localStorage.setItem("userFullName", fullName);
             localStorage.setItem("consultantId", user.id);
             window.dispatchEvent(new Event("profileUpdated"));
 
-            alert("Sua página pública foi atualizada com sucesso!");
+            alert("Configurações atualizadas com sucesso!");
         } catch (error: unknown) {
             const msg = error instanceof Error ? error.message : JSON.stringify(error);
             alert("Erro ao salvar perfil, detalhe técnico: " + msg);
             console.error(error);
         } finally {
-            setIsSaving(false);
+            setIsSaving(true);
+            // Delay pequeno para mostrar o feedback visual
+            setTimeout(() => setIsSaving(false), 500);
+        }
+    };
+
+    const handleUpdatePassword = async () => {
+        if (!newPassword || newPassword.length < 8) {
+            alert("A nova senha deve ter pelo menos 8 caracteres.");
+            return;
+        }
+
+        setIsUpdatingPassword(true);
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) throw error;
+
+            alert("Senha alterada com sucesso!");
+            setNewPassword("");
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : JSON.stringify(error);
+            alert("Erro ao alterar senha: " + msg);
+        } finally {
+            setIsUpdatingPassword(false);
         }
     };
 
@@ -289,6 +330,8 @@ export default function SettingsPage() {
                                         <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input
                                             type={showPassword ? "text" : "password"}
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
                                             placeholder="••••••••••••"
                                             className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14151C]/10 transition-all font-medium text-[#14151C]"
                                         />
@@ -302,8 +345,13 @@ export default function SettingsPage() {
                                     </div>
                                     <p className="text-[10px] text-slate-400">Use pelo menos 8 caracteres com letras e números.</p>
                                 </div>
-                                <button className="bg-[#14151C] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all">
-                                    Alterar Senha
+                                <button
+                                    onClick={handleUpdatePassword}
+                                    disabled={isUpdatingPassword}
+                                    className="bg-[#14151C] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-black transition-all disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isUpdatingPassword && <Loader2 size={16} className="animate-spin" />}
+                                    {isUpdatingPassword ? "Alterando..." : "Alterar Senha"}
                                 </button>
                             </div>
                         </div>
@@ -311,14 +359,37 @@ export default function SettingsPage() {
 
                     {activeTab === "notifications" && (
                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                            <div className="p-6 border-b border-slate-50 bg-[#FDFDFD] flex justify-between items-center">
                                 <h3 className="font-bold text-[#14151C]">Preferências de Notificação</h3>
+                                <button
+                                    className="flex items-center gap-2 bg-[#14151C] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-black transition-all disabled:opacity-50"
+                                    onClick={handleSaveProfile}
+                                    disabled={isSaving}
+                                >
+                                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                    {isSaving ? "Salvando..." : "Salvar Preferências"}
+                                </button>
                             </div>
                             <div className="p-8 space-y-6">
                                 <div className="space-y-4">
-                                    <NotificationToggle label="Novos Leads por E-mail" description="Receba um aviso quando alguém finalizar uma simulação." />
-                                    <NotificationToggle label="Relatório Semanal" description="Resumo do desempenho do seu simulador." />
-                                    <NotificationToggle label="Alertas do Sistema" description="Avisos sobre manutenções ou novas funcionalidades." />
+                                    <NotificationToggle
+                                        label="Novos Leads por E-mail"
+                                        description="Receba um aviso quando alguém finalizar uma simulação."
+                                        enabled={notifyNewLeads}
+                                        onChange={setNotifyNewLeads}
+                                    />
+                                    <NotificationToggle
+                                        label="Relatório Semanal"
+                                        description="Resumo do desempenho do seu simulador."
+                                        enabled={notifyWeeklyReport}
+                                        onChange={setNotifyWeeklyReport}
+                                    />
+                                    <NotificationToggle
+                                        label="Alertas do Sistema"
+                                        description="Avisos sobre manutenções ou novas funcionalidades."
+                                        enabled={notifySystemAlerts}
+                                        onChange={setNotifySystemAlerts}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -345,8 +416,7 @@ function SettingsNavItem({ icon, label, active = false, onClick }: { icon: React
     );
 }
 
-function NotificationToggle({ label, description }: { label: string, description: string }) {
-    const [enabled, setEnabled] = useState(true);
+function NotificationToggle({ label, description, enabled, onChange }: { label: string, description: string, enabled: boolean, onChange: (val: boolean) => void }) {
     return (
         <div className="flex items-center justify-between py-2">
             <div>
@@ -354,7 +424,8 @@ function NotificationToggle({ label, description }: { label: string, description
                 <p className="text-xs text-slate-500">{description}</p>
             </div>
             <button
-                onClick={() => setEnabled(!enabled)}
+                type="button"
+                onClick={() => onChange(!enabled)}
                 className={`w-10 h-5 rounded-full transition-all relative ${enabled ? 'bg-[#D4E44A]' : 'bg-slate-200'}`}
             >
                 <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${enabled ? 'left-6' : 'left-1'}`} />
