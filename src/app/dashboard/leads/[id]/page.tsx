@@ -1,102 +1,174 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Zap, CheckCircle2, Phone, Mail, Calendar, FileText, Home } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+};
+
+const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+const getScoreDetails = (score: string) => {
+    switch (score) {
+        case "A":
+            return {
+                scoreLabel: "Score Técnico Excelente",
+                scoreDesc: "Viabilidade alta detectada pelo simulador. Excelente potencial.",
+                scoreColor: "bg-[#D0F252]",
+                scoreTextColor: "text-[#14151C]",
+                scoreBorder: "border-[#D0F252]",
+                scoreShadow: "shadow-[0_4px_24px_rgba(208,242,82,0.15)]",
+                scoreBadgeBg: "bg-[#14151C] text-[#D0F252]",
+                scoreBadgeText: "ALTO VALOR",
+                savingsColor: "bg-green-50 border-green-100 text-green-700",
+                savingsLabelColor: "text-green-600",
+            };
+        case "B":
+            return {
+                scoreLabel: "Score Técnico Moderado",
+                scoreDesc: "Viabilidade média detectada. Possíveis desafios na instalação ou sombreamento parcial.",
+                scoreColor: "bg-orange-500",
+                scoreTextColor: "text-white",
+                scoreBorder: "border-orange-500",
+                scoreShadow: "shadow-[0_4px_24px_rgba(249,115,22,0.25)]",
+                scoreBadgeBg: "bg-orange-600 text-white",
+                scoreBadgeText: "MÉDIO VALOR",
+                savingsColor: "bg-orange-50 border-orange-100 text-orange-700",
+                savingsLabelColor: "text-orange-600",
+            };
+        case "C":
+        default:
+            return {
+                scoreLabel: "Score Técnico Inviável",
+                scoreDesc: "Viabilidade baixa detectada. Muitas sombras ou área insuficiente.",
+                scoreColor: "bg-red-500",
+                scoreTextColor: "text-white",
+                scoreBorder: "border-red-500",
+                scoreShadow: "shadow-[0_4px_24px_rgba(239,68,68,0.25)]",
+                scoreBadgeBg: "bg-red-600 text-white",
+                scoreBadgeText: "BAIXO VALOR",
+                savingsColor: "bg-red-50 border-red-100 text-red-700",
+                savingsLabelColor: "text-red-500",
+            };
+    }
+};
+
+const getStatusDetails = (status: string) => {
+    switch (status) {
+        case "Qualificado": return { tagColor: "bg-green-50 text-green-600 border-green-200" };
+        case "Pendente": return { tagColor: "bg-orange-50 text-orange-600 border-orange-200" };
+        case "Arquivado": return { tagColor: "bg-slate-50 text-slate-500 border-slate-200" };
+        case "Novo":
+        default:
+            return { tagColor: "bg-blue-50 text-blue-600 border-blue-200" };
+    }
+};
+
+type LeadData = {
+    name: string;
+    companyName: string;
+    type: string;
+    initials: string;
+    email: string;
+    phone: string;
+    address: string;
+    date: string;
+    tag: string;
+    tagColor: string;
+    score: string;
+    scoreLabel: string;
+    scoreDesc: string;
+    scoreColor: string;
+    scoreTextColor: string;
+    scoreBorder: string;
+    scoreShadow: string;
+    scoreBadgeBg: string;
+    scoreBadgeText: string;
+    bill: string;
+    savings: string;
+    savingsColor: string;
+    savingsLabelColor: string;
+    capex: string;
+    payback: string;
+    consumption: string;
+    area: string;
+    modules: string;
+    roofType: string;
+};
 
 export default function LeadDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     // We need to unwrap params since Next.js 15
     const resolvedParams = use(params);
     const { id } = resolvedParams;
 
-    const isBadLead = id === "4";
-    const isMediumLead = id === "3";
+    const [lead, setLead] = useState<LeadData | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    const lead = isBadLead ? {
-        name: "Condomínio Residencial",
-        initials: "CR",
-        email: "sindico.jose@condo.com",
-        phone: "(21) 9988-7766",
-        address: "Rua das Águias, 800 - RJ",
-        date: "Há 1 semana",
-        tag: "Inviável",
-        tagColor: "bg-red-50 text-red-600 border-red-200",
-        score: "C",
-        scoreLabel: "Score Técnico Inviável",
-        scoreDesc: "Viabilidade baixa detectada. Muitas sombras ou área insuficiente.",
-        scoreColor: "bg-red-500",
-        scoreTextColor: "text-white",
-        scoreBorder: "border-red-500",
-        scoreShadow: "shadow-[0_4px_24px_rgba(239,68,68,0.25)]",
-        scoreBadgeBg: "bg-red-600 text-white",
-        scoreBadgeText: "BAIXO VALOR",
-        bill: "R$ 120,00",
-        savings: "R$ 0,00",
-        savingsColor: "bg-red-50 border-red-100 text-red-700",
-        savingsLabelColor: "text-red-500",
-        capex: "N/A",
-        payback: "Inviável",
-        consumption: "120 kWh/mês",
-        area: "Aprox. 8 m²",
-        modules: "Nenhum",
-        roofType: "Metálico"
-    } : isMediumLead ? {
-        name: "Mariana Silveira",
-        initials: "MS",
-        email: "mari.silveira@outlook.com",
-        phone: "(31) 98877-6655",
-        address: "Rua dos Jacarandás, 55 - MG",
-        date: "22/05/2026",
-        tag: "Pendente",
-        tagColor: "bg-orange-50 text-orange-600 border-orange-200",
-        score: "B",
-        scoreLabel: "Score Técnico Moderado",
-        scoreDesc: "Viabilidade média detectada. Possíveis desafios na instalação ou sombreamento parcial.",
-        scoreColor: "bg-orange-500",
-        scoreTextColor: "text-white",
-        scoreBorder: "border-orange-500",
-        scoreShadow: "shadow-[0_4px_24px_rgba(249,115,22,0.25)]",
-        scoreBadgeBg: "bg-orange-600 text-white",
-        scoreBadgeText: "MÉDIO VALOR",
-        bill: "R$ 310,00",
-        savings: "R$ 250,00",
-        savingsColor: "bg-orange-50 border-orange-100 text-orange-700",
-        savingsLabelColor: "text-orange-600",
-        capex: "R$ 18.2k",
-        payback: "5.2 Anos",
-        consumption: "310 kWh/mês",
-        area: "Aprox. 20 m²",
-        modules: "6 Placas (550W)",
-        roofType: "Cerâmico"
-    } : {
-        name: "Carlos Andrade",
-        initials: "CA",
-        email: "carlos.e@gmail.com",
-        phone: "(11) 98765-4321",
-        address: "Rua das Oliveiras, 145 - Morumbi, São Paulo/SP",
-        date: "Capturado em 14/05/2026",
-        tag: "Qualificado",
-        tagColor: "bg-green-50 text-green-600 border-green-200",
-        score: "A",
-        scoreLabel: "Score Técnico Excelente",
-        scoreDesc: "Viabilidade alta detectada pelo simulador para esta residência.",
-        scoreColor: "bg-[#D0F252]",
-        scoreTextColor: "text-[#14151C]",
-        scoreBorder: "border-[#D0F252]",
-        scoreShadow: "shadow-[0_4px_24px_rgba(208,242,82,0.15)]",
-        scoreBadgeBg: "bg-[#14151C] text-[#D0F252]",
-        scoreBadgeText: "ALTO VALOR",
-        bill: "R$ 950,00",
-        savings: "R$ 840,00",
-        savingsColor: "bg-green-50 border-green-100 text-green-700",
-        savingsLabelColor: "text-green-600",
-        capex: "R$ 35k",
-        payback: "3.8 Anos",
-        consumption: "950 kWh/mês",
-        area: "Aprox. 45 m²",
-        modules: "16 Placas (550W)",
-        roofType: "Cerâmico"
-    };
+    useEffect(() => {
+        const fetchLead = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data, error } = await supabase
+                    .from('leads')
+                    .select('*')
+                    .eq('id', id)
+                    .eq('consultant_id', user.id)
+                    .single();
+
+                if (error) throw error;
+                if (data) {
+                    const sData = data.simulation_data || {};
+                    const initials = (data.name || "ND").substring(0, 2).toUpperCase();
+
+                    const payback = data.estimated_savings > 0
+                        ? (data.estimated_capex / (data.estimated_savings * 12)).toFixed(1) + " Anos"
+                        : "N/A";
+
+                    const scoreDetails = getScoreDetails(data.score || "C");
+                    const statusDetails = getStatusDetails(data.status || "Novo");
+
+                    setLead({
+                        name: data.name || "Sem Nome",
+                        companyName: sData.companyName || "",
+                        type: sData.type === 'business' ? "Empresa" : "Residência",
+                        initials,
+                        email: data.email || "Não informado",
+                        phone: data.phone || "Não informado",
+                        address: `${data.city_state || ""} ${sData.cep ? `- CEP ${sData.cep}` : ""} ${sData.numeroCasa ? `- Nr. ${sData.numeroCasa}` : ""}`.trim(),
+                        date: `Capturado em ${formatDate(data.created_at)}`,
+                        tag: data.status || "Novo",
+                        ...statusDetails,
+                        score: data.score || "C",
+                        ...scoreDetails,
+                        bill: formatCurrency(data.monthly_bill || 0),
+                        savings: formatCurrency(data.estimated_savings || 0),
+                        capex: formatCurrency(data.estimated_capex || 0),
+                        payback,
+                        consumption: `${sData.consumo_kwh || Math.round((data.monthly_bill || 0) / 0.8)} kWh/mês`,
+                        area: sData.num_placas ? `Aprox. ${Math.ceil(sData.num_placas * 2.5)} m²` : "N/A",
+                        modules: sData.num_placas ? `${sData.num_placas} Placas` : "N/A",
+                        roofType: "Não informado"
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching lead:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchLead();
+    }, [id]);
+
+    if (loading) return <div className="p-12 text-center text-[#111F18] font-black">Carregando Lead...</div>;
+    if (!lead) return <div className="p-12 text-center text-red-500 font-bold">Erro: Lead não encontrado ou você não tem acesso a ele.</div>;
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 pb-12">
