@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Zap, CheckCircle2, Phone, Mail, Calendar, FileText, Home } from "lucide-react";
+import { ArrowLeft, MapPin, Zap, CheckCircle2, Phone, Mail, Calendar, FileText, Home, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const formatCurrency = (value: number) => {
@@ -376,10 +376,17 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 p-4 bg-green-500/10 rounded-xl border border-green-500/20 text-xs text-green-400 font-medium flex gap-3 items-start">
-                                        <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-green-400" />
-                                        <p><b>Conclusão Física:</b> O algoritmo do satélite confirmou área de luz desobstruída suficiente para a potência apresentada, descartando pontos de sombra contínuos.</p>
-                                    </div>
+                                    {techData.areaM2 === 0 || techData.maxKwp === 0 ? (
+                                        <div className="mt-4 p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20 text-xs text-yellow-500 font-medium flex gap-3 items-start">
+                                            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                                            <p><b>Leitura Parcial de Satélite:</b> O satélite localizou as coordenadas do logradouro e mensurou a incidência solar da região (<b>{Math.round(techData.irradiance)}h</b>), porém não possui dados 3D volumétricos detalhados deste telhado específico na base do Google. O cálculo detalhado da área precisará de validação humana (ex: fotos ou ida ao local).</p>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-4 p-4 bg-green-500/10 rounded-xl border border-green-500/20 text-xs text-green-400 font-medium flex gap-3 items-start">
+                                            <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-green-400" />
+                                            <p><b>Conclusão Física:</b> O algoritmo do satélite confirmou área de luz desobstruída suficiente para a potência apresentada, descartando pontos de sombra contínuos.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
