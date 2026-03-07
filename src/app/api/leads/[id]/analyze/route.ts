@@ -95,30 +95,40 @@ export async function POST(
         // Removida a verificação de Score A ou B para permitir que qualquer lead seja analisado.
 
         const sData = lead.simulation_data || {};
-        const address = `${sData.numeroCasa || ""}, ${sData.cep || ""}, Brazil`.trim();
+        let lat = sData.location?.lat;
+        let lng = sData.location?.lng;
 
-        if (!sData.cep) {
-            return NextResponse.json({ error: "Endereço incompleto (CEP ausente) na ficha do lead." }, { status: 400 });
+        // Se por algum motivo as coordenadas não foram salvas na simulação, tenta buscar via Geocoding
+        if (!lat || !lng) {
+            if (!sData.cep) {
+                return NextResponse.json({ error: "Endereço incompleto (CEP ausente) na ficha do lead." }, { status: 400 });
+            }
+
+            const addressFallback = `${sData.numeroCasa || ""}, ${sData.cep || ""}, ${lead.city_state || ""}, Brazil`.replace(/^,\s*/, '').trim();
+            const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressFallback)}&key=${GOOGLE_API_KEY}`;
+            const geoRes = await fetch(geoUrl);
+            const geoData = await geoRes.json();
+
+            if (geoData.status !== "OK" || !geoData.results[0]) {
+                return NextResponse.json({ error: "Google não localizou as coordenadas exatas para este CEP e Número." }, { status: 400 });
+            }
+
+            lat = geoData.results[0].geometry.location.lat;
+            lng = geoData.results[0].geometry.location.lng;
         }
-
-        // 4. Geocoding API
-        const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`;
-        const geoRes = await fetch(geoUrl);
-        const geoData = await geoRes.json();
-
-        if (geoData.status !== "OK" || !geoData.results[0]) {
-            return NextResponse.json({ error: "Google não localizou as coordenadas exatas para este CEP e Número." }, { status: 400 });
-        }
-
-        const { lat, lng } = geoData.results[0].geometry.location;
 
         // 5. Google Solar API
-        const solarUrl = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${lat}&location.longitude=${lng}&key=${GOOGLE_API_KEY}`;
+        const solarUrl = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${lat}&location.longitude=${lng}&requiredQuality=LOW&key=${GOOGLE_API_KEY}`;
         const solarRes = await fetch(solarUrl);
         const solarData = await solarRes.json();
 
         if (solarRes.status !== 200) {
-            return NextResponse.json({ error: "Telhado não identificado ou fora da área de cobertura do Google Solar." }, { status: 404 });
+            console.error("Erro da API Google Solar:", solarData);
+            const apiMsg = solarData.error?.message || "Desconhecido";
+            const apiStatus = solarData.error?.status || solarRes.status;
+            return NextResponse.json({
+                error: `Ops! A API do Google Solar recusou a busca. Motivo: [${apiStatus}] ${apiMsg}. Verifique os detalhes técnicos.`
+            }, { status: 404 });
         }
 
         // 6. Extrair Métricas Técnicas
