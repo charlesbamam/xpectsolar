@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { User } from "@supabase/supabase-js";
 
 export default function AuthCallbackPage() {
     const router = useRouter();
@@ -12,7 +13,7 @@ export default function AuthCallbackPage() {
 
     useEffect(() => {
         let isMounted = true;
-        const processUser = async (user: any) => {
+        const processUser = async (user: User) => {
             try {
                 // 1. Verificar se o consultor já existe
                 const { data: existingConsultant } = await supabase
@@ -22,10 +23,21 @@ export default function AuthCallbackPage() {
                     .single();
 
                 if (!existingConsultant) {
-                    // 2. Criar perfil de consultor usando os metadados salvos no registro
-                    const firstName = user.user_metadata?.first_name || "Consultor";
-                    const lastName = user.user_metadata?.last_name || "";
-                    const fullName = `${firstName} ${lastName}`.trim();
+                    // 2. Criar perfil de consultor usando os metadados salvos ou vindos do provedor social
+                    const fullNameFromMeta = user.user_metadata?.full_name || user.user_metadata?.name || "";
+                    const firstNameFromMeta = user.user_metadata?.first_name || user.user_metadata?.given_name || "";
+                    const lastNameFromMeta = user.user_metadata?.last_name || user.user_metadata?.family_name || "";
+
+                    let firstName = firstNameFromMeta || "Consultor";
+                    let lastName = lastNameFromMeta || "";
+                    const fullName = fullNameFromMeta || `${firstName} ${lastName}`.trim();
+
+                    // Se vier do Google (full_name) mas não tiver first/last separados, tenta separar
+                    if (fullNameFromMeta && !firstNameFromMeta) {
+                        const parts = fullNameFromMeta.split(" ");
+                        firstName = parts[0];
+                        lastName = parts.slice(1).join(" ");
+                    }
 
                     const slugCandidate = firstName.toLowerCase()
                         .normalize("NFD")

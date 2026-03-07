@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, Zap, Info, X, Loader2, Users, BarChart, HelpCircle } from "lucide-react";
+import { Search, Filter, Zap, Info, X, Loader2, Users, BarChart, HelpCircle, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -318,7 +318,6 @@ export default function DashboardIndex() {
                                         key={lead.id}
                                         id={lead.id}
                                         name={lead.name}
-                                        email={lead.email || "Sem e-mail"}
                                         location={lead.city_state || "Não informado"}
                                         date={formatDate(lead.created_at)}
                                         score={lead.score as "A" | "B" | "C"}
@@ -398,7 +397,7 @@ function ScoreBar({ score, label, percentage, color }: { score: string, label: s
     );
 }
 
-function LeadRow({ id, name, email, location, date, score, techAnalyzed, onAnalyzeSuccess }: { id: string, name: string, email: string, location: string, date: string, score: "A" | "B" | "C", techAnalyzed?: boolean, onAnalyzeSuccess: () => void }) {
+function LeadRow({ id, name, location, date, score, techAnalyzed, onAnalyzeSuccess }: { id: string, name: string, location: string, date: string, score: "A" | "B" | "C", techAnalyzed?: boolean, onAnalyzeSuccess: () => void }) {
     const router = useRouter();
     const [analyzing, setAnalyzing] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
@@ -466,8 +465,8 @@ function LeadRow({ id, name, email, location, date, score, techAnalyzed, onAnaly
                                 onClick={handleAnalyze}
                                 disabled={analyzing || score !== 'A'}
                                 className={`px-4 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 ${score === 'A'
-                                        ? 'bg-[#14151C] text-[#D0F252] hover:scale-[1.02] active:scale-95'
-                                        : 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed'
+                                    ? 'bg-[#14151C] text-[#D0F252] hover:scale-[1.02] active:scale-95'
+                                    : 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed'
                                     }`}
                             >
                                 <Zap size={10} fill={score === 'A' ? "currentColor" : "none"} />
