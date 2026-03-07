@@ -15,8 +15,21 @@ export async function POST(
     try {
         const { id } = await params;
 
-        // 1. Verificar autenticação do consultor
+        // 1. Verificar autenticação do consultor e criar cliente autenticado
         const authHeader = req.headers.get("Authorization");
+
+        const supabaseAuth = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                global: {
+                    headers: {
+                        Authorization: authHeader || ""
+                    }
+                }
+            }
+        );
+
         let user;
 
         if (authHeader) {
@@ -35,7 +48,7 @@ export async function POST(
         }
 
         // 2. Verificar/Resetar créditos do consultor
-        const { data: consultant, error: consultantError } = await supabaseAdmin
+        const { data: consultant, error: consultantError } = await supabaseAuth
             .from("consultants")
             .select("id, plan_type, solar_api_credits, solar_api_last_reset")
             .eq("id", user.id)
@@ -53,7 +66,7 @@ export async function POST(
         // Lógica de reset mensal (30 dias)
         if (currentCredits === null || currentCredits === undefined || !lastReset || (now.getTime() - lastReset.getTime() > 30 * 24 * 60 * 60 * 1000)) {
             currentCredits = maxCredits;
-            await supabaseAdmin
+            await supabaseAuth
                 .from("consultants")
                 .update({
                     solar_api_credits: maxCredits,
@@ -68,7 +81,7 @@ export async function POST(
         }
 
         // 3. Buscar dados do Lead
-        const { data: lead, error: leadError } = await supabaseAdmin
+        const { data: lead, error: leadError } = await supabaseAuth
             .from("leads")
             .select("*")
             .eq("id", id)
@@ -123,7 +136,7 @@ export async function POST(
         const payback = 4.5; // Estimativa fixa técnica
 
         // 7. Atualizar Lead no banco
-        const { error: updateError } = await supabaseAdmin
+        const { error: updateError } = await supabaseAuth
             .from("leads")
             .update({
                 tech_analyzed: true,
@@ -140,7 +153,7 @@ export async function POST(
         if (updateError) throw updateError;
 
         // 8. Debitar crédito
-        await supabaseAdmin
+        await supabaseAuth
             .from("consultants")
             .update({ solar_api_credits: currentCredits - 1 })
             .eq("id", user.id);
