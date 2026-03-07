@@ -132,7 +132,7 @@ export async function POST(
         }
 
         // 6. Extrair Métricas Técnicas
-        const stats = solarData.wholeRoofStats;
+        const stats = solarData.wholeRoofStats || {};
         const areaM2 = stats.areaMeters2 || 0;
         const maxSunHoursPerYear = solarData.solarPotential?.maxSunshineHoursPerYear || 0;
         const irradiance = maxSunHoursPerYear;

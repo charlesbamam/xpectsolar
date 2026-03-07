@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, Zap, Info, X, Loader2, Users, BarChart, HelpCircle, CheckCircle2 } from "lucide-react";
+import { Search, Filter, Zap, Info, X, Loader2, Users, BarChart, HelpCircle, CheckCircle2, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -25,9 +25,9 @@ interface Consultant {
 export default function DashboardIndex() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showBanner, setShowBanner] = useState(true);
-
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
+    const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
     const [hasSimulator, setHasSimulator] = useState<boolean>(true);
 
     const fetchLeads = async () => {
@@ -323,6 +323,7 @@ export default function DashboardIndex() {
                                         score={lead.score as "A" | "B" | "C"}
                                         techAnalyzed={lead.tech_analyzed}
                                         onAnalyzeSuccess={fetchLeads}
+                                        onError={(msg) => setErrorModal({ isOpen: true, message: msg })}
                                     />
                                 ))
                             ) : (
@@ -341,6 +342,33 @@ export default function DashboardIndex() {
                     </Link>
                 </div>
             </div>
+
+            {/* Error Modal */}
+            {errorModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
+                        <div className="p-6 text-center space-y-6">
+                            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto ring-8 ring-red-50/50">
+                                <XCircle size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-[#14151C] mb-2">Análise Recusada</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                                    {errorModal.message}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-center">
+                            <button
+                                onClick={() => setErrorModal({ isOpen: false, message: "" })}
+                                className="w-full sm:w-auto px-8 py-2.5 bg-[#14151C] text-white rounded-xl font-bold text-sm hover:bg-black transition-colors"
+                            >
+                                Entendido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -397,7 +425,7 @@ function ScoreBar({ score, label, percentage, color }: { score: string, label: s
     );
 }
 
-function LeadRow({ id, name, location, date, score, techAnalyzed, onAnalyzeSuccess }: { id: string, name: string, location: string, date: string, score: "A" | "B" | "C", techAnalyzed?: boolean, onAnalyzeSuccess: () => void }) {
+function LeadRow({ id, name, location, date, score, techAnalyzed, onAnalyzeSuccess, onError }: { id: string, name: string, location: string, date: string, score: "A" | "B" | "C", techAnalyzed?: boolean, onAnalyzeSuccess: () => void, onError: (msg: string) => void }) {
     const router = useRouter();
     const [analyzing, setAnalyzing] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
@@ -426,12 +454,13 @@ function LeadRow({ id, name, location, date, score, techAnalyzed, onAnalyzeSucce
             const result = await res.json();
             if (result.success) {
                 onAnalyzeSuccess();
+                router.push(`/dashboard/leads/${id}`);
             } else {
-                alert(result.error || "Erro ao analisar.");
+                onError(result.error || "Erro ao analisar.");
             }
         } catch (err) {
             console.error(err);
-            alert("Erro de conexão.");
+            onError("Erro de conexão.");
         } finally {
             setAnalyzing(false);
         }
