@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, Zap, Info, X, Loader2, Users, BarChart } from "lucide-react";
+import { Search, Filter, Zap, Info, X, Loader2, Users, BarChart, HelpCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -14,6 +14,7 @@ interface Lead {
     score?: string;
     estimated_savings?: number;
     created_at: string;
+    tech_analyzed?: boolean;
 }
 
 interface Consultant {
@@ -29,40 +30,40 @@ export default function DashboardIndex() {
     const [loading, setLoading] = useState(true);
     const [hasSimulator, setHasSimulator] = useState<boolean>(true);
 
-    useEffect(() => {
-        const fetchLeads = async () => {
-            setLoading(true);
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+    const fetchLeads = async () => {
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
-                const { data: leadData, error: leadError } = await supabase
-                    .from('leads')
-                    .select('*')
-                    .eq('consultant_id', user.id)
-                    .order('created_at', { ascending: false });
+            const { data: leadData, error: leadError } = await supabase
+                .from('leads')
+                .select('*')
+                .eq('consultant_id', user.id)
+                .order('created_at', { ascending: false });
 
-                if (leadError) throw leadError;
-                if (leadData) setLeads(leadData as Lead[]); // Cast to Lead[]
+            if (leadError) throw leadError;
+            if (leadData) setLeads(leadData as Lead[]);
 
-                const { data: consultant } = await supabase
-                    .from('consultants')
-                    .select('slug, full_name')
-                    .eq('user_id', user.id)
-                    .single();
+            const { data: consultant } = await supabase
+                .from('consultants')
+                .select('slug, full_name')
+                .eq('user_id', user.id)
+                .single();
 
-                if (consultant) {
-                    setHasSimulator(!!(consultant as Consultant).slug); // Cast to Consultant
-                } else {
-                    setHasSimulator(false);
-                }
-            } catch (err) {
-                console.error("Erro no fetch do dashboard:", err);
-            } finally {
-                setLoading(false);
+            if (consultant) {
+                setHasSimulator(!!(consultant as Consultant).slug);
+            } else {
+                setHasSimulator(false);
             }
-        };
+        } catch (err) {
+            console.error("Erro no fetch do dashboard:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchLeads();
     }, []);
 
@@ -88,7 +89,6 @@ export default function DashboardIndex() {
     const qualifiedLeads = leads.filter(l => l.score === 'A' || l.score === 'B').length;
     const qualifiedPercent = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0;
 
-    // Estatísticas reais para o gráfico de barras laterais
     const scoreA = leads.filter(l => l.score === 'A').length;
     const scoreB = leads.filter(l => l.score === 'B').length;
     const scoreC = leads.filter(l => l.score === 'C').length;
@@ -97,19 +97,14 @@ export default function DashboardIndex() {
     const percentB = totalLeads > 0 ? Math.round((scoreB / totalLeads) * 100) : 0;
     const percentC = totalLeads > 0 ? Math.round((scoreC / totalLeads) * 100) : 0;
 
-    // Calcular leads de hoje
     const today = new Date().toISOString().split('T')[0];
     const leadsToday = leads.filter(l => l.created_at.startsWith(today)).length;
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-10">
-            {/* System Banner (Controlled via Super Admin) */}
-            {/* Alerta de Criar Simulador (Apenas se não tiver slug) */}
             {!loading && !hasSimulator && (
                 <div className="bg-[#14151C] rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl shadow-black/20 text-white relative overflow-hidden border border-white/5">
-                    {/* Decorative Elements */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-[#D0F252]/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
-
                     <div className="flex items-start md:items-center gap-5 relative z-10 w-full pr-8">
                         <div className="p-4 bg-[#D0F252] rounded-2xl shrink-0 shadow-[0_0_20px_rgba(208,242,82,0.3)]">
                             <Zap size={28} className="text-[#14151C]" fill="currentColor" />
@@ -124,7 +119,6 @@ export default function DashboardIndex() {
                             </p>
                         </div>
                     </div>
-
                     <div className="flex items-center gap-3 relative z-10 w-full md:w-auto shrink-0">
                         <Link href="/dashboard/simulator" className="w-full md:w-auto px-8 py-4 bg-[#D0F252] text-[#14151C] hover:bg-[#b8d641] font-black text-sm rounded-xl transition-all shadow-lg shadow-[#D0F252]/20 hover:-translate-y-1 active:scale-95 text-center uppercase tracking-wider">
                             Criar meu simulador agora
@@ -133,7 +127,6 @@ export default function DashboardIndex() {
                 </div>
             )}
 
-            {/* System Banner - V2 Features (Show if simulator exists) */}
             {hasSimulator && showBanner && (
                 <div className="bg-blue-600 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-blue-600/20 text-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
@@ -162,7 +155,6 @@ export default function DashboardIndex() {
                 </div>
             )}
 
-            {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-[#14151C] tracking-tight">Dashboard Overview</h1>
@@ -182,7 +174,6 @@ export default function DashboardIndex() {
                 </div>
             </div>
 
-            {/* Top Metrics Cards - BI Style */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <MetricCard
                     title="Total de Leads"
@@ -205,10 +196,7 @@ export default function DashboardIndex() {
                 />
             </div>
 
-            {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* Main Graph (Bar Chart - Simulated via Tailwind) */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 flex flex-col">
                     <div className="flex justify-between items-center mb-6">
                         <div>
@@ -222,7 +210,6 @@ export default function DashboardIndex() {
                     </div>
 
                     <div className="flex-1 min-h-[250px] flex items-end gap-2 md:gap-6 pt-4 relative">
-                        {/* Y-Axis labels */}
                         <div className="absolute left-0 top-0 bottom-8 w-8 flex flex-col justify-between text-[10px] text-slate-400 font-bold border-r border-slate-100 pr-2 items-end">
                             <span>40</span>
                             <span>30</span>
@@ -230,9 +217,7 @@ export default function DashboardIndex() {
                             <span>10</span>
                             <span>0</span>
                         </div>
-                        {/* Graph bars */}
                         <div className="flex-1 flex justify-around items-end h-[200px] ml-10 border-b border-slate-100 relative">
-                            {/* Horizontal guide lines */}
                             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                                 <div className="border-t border-slate-50 w-full h-0"></div>
                                 <div className="border-t border-slate-50 w-full h-0"></div>
@@ -249,7 +234,6 @@ export default function DashboardIndex() {
                     </div>
                 </div>
 
-                {/* Secondary Graph (Donut / Progress style) */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
                     <div className="mb-6">
                         <h3 className="text-lg font-bold text-[#14151C]">Classificação Técnica</h3>
@@ -279,9 +263,7 @@ export default function DashboardIndex() {
                 </div>
             </div>
 
-            {/* Lead Table (UX Requirement) */}
             <div id="top-opportunities" className="bg-white rounded-2xl border-2 border-[#D0F252] shadow-[0_4px_24px_rgba(208,242,82,0.15)] overflow-hidden relative scroll-mt-24">
-                {/* Highlight Tag */}
                 <div className="absolute top-0 right-8 bg-[#14151C] text-[#D0F252] text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-b-lg shadow-sm z-10 flex items-center gap-1.5">
                     <Zap size={10} fill="currentColor" /> Alto Valor
                 </div>
@@ -315,16 +297,15 @@ export default function DashboardIndex() {
                         <thead className="text-[10px] text-slate-500 bg-white uppercase font-bold tracking-wider border-b border-slate-100">
                             <tr>
                                 <th className="px-6 py-4">Lead / Contato</th>
-                                <th className="px-6 py-4">Data Captura</th>
+                                <th className="px-6 py-4 text-center">Data Captura</th>
                                 <th className="px-6 py-4 text-center">Score Técnico</th>
-                                <th className="px-6 py-4">Investimento Est.</th>
-                                <th className="px-6 py-4 text-right">Potencial (Mês)</th>
+                                <th className="px-6 py-4 text-right">Ação Solar</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
                                         <div className="flex flex-col items-center gap-3">
                                             <Loader2 size={32} className="animate-spin text-slate-300" />
                                             <p className="font-bold text-sm">Carregando leads...</p>
@@ -341,12 +322,13 @@ export default function DashboardIndex() {
                                         location={lead.city_state || "Não informado"}
                                         date={formatDate(lead.created_at)}
                                         score={lead.score as "A" | "B" | "C"}
-                                        savings={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_savings || 0)}
+                                        techAnalyzed={lead.tech_analyzed}
+                                        onAnalyzeSuccess={fetchLeads}
                                     />
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
                                         Nenhuma oportunidade encontrada. Comece a compartilhar seu link!
                                     </td>
                                 </tr>
@@ -363,8 +345,6 @@ export default function DashboardIndex() {
         </div>
     );
 }
-
-// Subcomponents
 
 function MetricCard({ title, value, description, icon, highlight }: { title: string, value: string, description: string, icon: React.ReactNode, highlight?: boolean }) {
     return (
@@ -418,8 +398,11 @@ function ScoreBar({ score, label, percentage, color }: { score: string, label: s
     );
 }
 
-function LeadRow({ id, name, email, location, date, score, savings }: { id: string, name: string, email: string, location: string, date: string, score: "A" | "B" | "C", savings: string }) {
+function LeadRow({ id, name, email, location, date, score, techAnalyzed, onAnalyzeSuccess }: { id: string, name: string, email: string, location: string, date: string, score: "A" | "B" | "C", techAnalyzed?: boolean, onAnalyzeSuccess: () => void }) {
     const router = useRouter();
+    const [analyzing, setAnalyzing] = useState(false);
+    const [showTooltip, setShowTooltip] = useState(false);
+
     const getBadgeColor = () => {
         switch (score) {
             case "A": return "bg-[#D0F252] text-[#14151C] border-transparent shadow-sm";
@@ -429,20 +412,41 @@ function LeadRow({ id, name, email, location, date, score, savings }: { id: stri
         }
     };
 
+    const handleAnalyze = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (score !== 'A') return;
+        setAnalyzing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`/api/leads/${id}/analyze`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            const result = await res.json();
+            if (result.success) {
+                onAnalyzeSuccess();
+            } else {
+                alert(result.error || "Erro ao analisar.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro de conexão.");
+        } finally {
+            setAnalyzing(false);
+        }
+    };
+
     return (
         <tr className="hover:bg-slate-50/80 transition-colors group cursor-pointer bg-white" onClick={() => router.push(`/dashboard/leads/${id}`)}>
             <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex flex-col">
                     <span className="font-bold text-[#14151C] tracking-tight">{name}</span>
-                    <span className="text-[11px] font-medium text-slate-400">{email}</span>
+                    <span className="text-[11px] font-medium text-slate-400">{location}</span>
                 </div>
             </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                    <span className="text-xs">{location}</span>
-                </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-slate-400 text-xs font-semibold">
+            <td className="px-6 py-4 whitespace-nowrap text-slate-400 text-[10px] font-black uppercase text-center">
                 {date}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -450,12 +454,51 @@ function LeadRow({ id, name, email, location, date, score, savings }: { id: stri
                     Score {score}
                 </span>
             </td>
-            <td className="px-6 py-4 text-right whitespace-nowrap">
-                <div className="inline-flex rounded-lg px-3 py-1.5 bg-slate-50 text-[#14151C] font-black text-xs border border-slate-100">
-                    + {savings}
+            <td className="px-6 py-4 text-right whitespace-nowrap relative">
+                <div className="flex items-center justify-end gap-2">
+                    {techAnalyzed ? (
+                        <div className="flex items-center gap-1.5 text-green-600 font-black text-[10px] uppercase">
+                            <CheckCircle2 size={12} /> Analisado
+                        </div>
+                    ) : (
+                        <div className="relative flex items-center gap-2">
+                            <button
+                                onClick={handleAnalyze}
+                                disabled={analyzing || score !== 'A'}
+                                className={`px-4 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 ${score === 'A'
+                                        ? 'bg-[#14151C] text-[#D0F252] hover:scale-[1.02] active:scale-95'
+                                        : 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed'
+                                    }`}
+                            >
+                                <Zap size={10} fill={score === 'A' ? "currentColor" : "none"} />
+                                {analyzing ? "..." : "Analisar"}
+                            </button>
+
+                            {/* Alerta Premium / Tooltip */}
+                            <div
+                                className="text-slate-300 hover:text-slate-500 transition-colors cursor-help"
+                                onMouseEnter={() => setShowTooltip(true)}
+                                onMouseLeave={() => setShowTooltip(false)}
+                            >
+                                <HelpCircle size={14} />
+                            </div>
+
+                            {showTooltip && (
+                                <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-[#14151C] text-white text-[10px] leading-relaxed rounded-xl shadow-2xl z-50 border border-white/10 animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="flex items-center gap-2 mb-2 text-[#D0F252] font-black uppercase tracking-widest">
+                                        <Zap size={10} fill="currentColor" /> Recurso Premium
+                                    </div>
+                                    <p className="font-medium">
+                                        Esta é uma análise solar via satélite de alto custo. <br /><br />
+                                        Para preservar seus créditos, o botão só habilita em leads com <b className="text-[#D0F252]">Score A</b> (excelente viabilidade técnica detectada).
+                                    </p>
+                                    <div className="absolute bottom-[-6px] right-2 w-3 h-3 bg-[#14151C] rotate-45 border-r border-b border-white/10"></div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </td>
         </tr>
     );
 }
-

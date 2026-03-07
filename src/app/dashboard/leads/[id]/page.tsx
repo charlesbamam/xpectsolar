@@ -35,7 +35,7 @@ const getScoreDetails = (score: string) => {
                 scoreColor: "bg-orange-500",
                 scoreTextColor: "text-white",
                 scoreBorder: "border-orange-500",
-                scoreShadow: "shadow-[0_4px_24px_rgba(249,115,22,0.25)]",
+                scoreShadow: "shadow-[0_4px_24_rgba(249,115,22,0.25)]",
                 scoreBadgeBg: "bg-orange-600 text-white",
                 scoreBadgeText: "MÉDIO VALOR",
                 savingsColor: "bg-orange-50 border-orange-100 text-orange-700",
@@ -102,93 +102,126 @@ type LeadData = {
 };
 
 export default function LeadDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-    // We need to unwrap params since Next.js 15
     const resolvedParams = use(params);
     const { id } = resolvedParams;
 
     const [lead, setLead] = useState<LeadData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [analyzing, setAnalyzing] = useState(false);
+    const [techData, setTechData] = useState<any>(null);
 
-    useEffect(() => {
-        const fetchLead = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+    const fetchLead = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
-                const { data, error } = await supabase
-                    .from('leads')
-                    .select('*')
-                    .eq('id', id)
-                    .eq('consultant_id', user.id)
-                    .single();
+            const { data, error } = await supabase
+                .from('leads')
+                .select('*')
+                .eq('id', id)
+                .eq('consultant_id', user.id)
+                .single();
 
-                if (error) throw error;
-                if (data) {
-                    const sData = data.simulation_data || {};
-                    const initials = (data.name || "ND").substring(0, 2).toUpperCase();
+            if (error) throw error;
+            if (data) {
+                const sData = data.simulation_data || {};
+                const initials = (data.name || "ND").substring(0, 2).toUpperCase();
 
-                    const payback = data.estimated_savings > 0
-                        ? (data.estimated_capex / (data.estimated_savings * 12)).toFixed(1) + " Anos"
-                        : "N/A";
+                const payback = data.estimated_savings > 0
+                    ? (data.estimated_capex / (data.estimated_savings * 12)).toFixed(1) + " Anos"
+                    : "N/A";
 
-                    const scoreDetails = getScoreDetails(data.score || "C");
-                    const statusDetails = getStatusDetails(data.status || "Novo");
+                const scoreDetails = getScoreDetails(data.score || "C");
+                const statusDetails = getStatusDetails(data.status || "Novo");
 
-                    setLead({
-                        name: data.name || "Sem Nome",
-                        companyName: sData.companyName || "",
-                        type: sData.type === 'business' ? "Empresa" : "Residência",
-                        initials,
-                        email: data.email || "Não informado",
-                        phone: data.phone || "Não informado",
-                        address: `${data.city_state || ""} ${sData.cep ? `- CEP ${sData.cep}` : ""} ${sData.numeroCasa ? `- Nr. ${sData.numeroCasa}` : ""}`.trim(),
-                        date: `Capturado em ${formatDate(data.created_at)}`,
-                        tag: data.status || "Novo",
-                        ...statusDetails,
-                        score: data.score || "C",
-                        ...scoreDetails,
-                        bill: formatCurrency(data.monthly_bill || 0),
-                        savings: formatCurrency(data.estimated_savings || 0),
-                        capex: formatCurrency(data.estimated_capex || 0),
-                        payback,
-                        consumption: `${sData.consumo_kwh || Math.round((data.monthly_bill || 0) / 0.8)} kWh/mês`,
-                        area: sData.num_placas ? `Aprox. ${Math.ceil(sData.num_placas * 2.5)} m²` : "N/A",
-                        modules: sData.num_placas ? `${sData.num_placas} Placas` : "N/A",
-                        roofType: "Não informado"
+                setLead({
+                    name: data.name || "Sem Nome",
+                    companyName: sData.companyName || "",
+                    type: sData.type === 'business' ? "Empresa" : "Residência",
+                    initials,
+                    email: data.email || "Não informado",
+                    phone: data.phone || "Não informado",
+                    address: `${data.city_state || ""} ${sData.cep ? `- CEP ${sData.cep}` : ""} ${sData.numeroCasa ? `- Nr. ${sData.numeroCasa}` : ""}`.trim(),
+                    date: `Capturado em ${formatDate(data.created_at)}`,
+                    tag: data.status || "Novo",
+                    ...statusDetails,
+                    score: data.score || "C",
+                    ...scoreDetails,
+                    bill: formatCurrency(data.monthly_bill || 0),
+                    savings: formatCurrency(data.estimated_savings || 0),
+                    capex: formatCurrency(data.estimated_capex || 0),
+                    payback,
+                    consumption: `${sData.consumo_kwh || Math.round((data.monthly_bill || 0) / 0.8)} kWh/mês`,
+                    area: sData.num_placas ? `Aprox. ${Math.ceil(sData.num_placas * 2.5)} m²` : "N/A",
+                    modules: sData.num_placas ? `${sData.num_placas} Placas` : "N/A",
+                    roofType: "Não informado"
+                });
+
+                if (data.tech_analyzed) {
+                    setTechData({
+                        areaM2: data.tech_area_m2,
+                        irradiance: data.tech_irradiance,
+                        maxKwp: data.tech_kwp,
+                        satelliteUrl: data.tech_satellite_url,
+                        payback: data.tech_payback
                     });
                 }
-            } catch (error) {
-                console.error("Error fetching lead:", error);
-            } finally {
-                setLoading(false);
             }
-        };
+        } catch (error) {
+            console.error("Error fetching lead:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchLead();
     }, [id]);
 
-    if (loading) return <div className="p-12 text-center text-[#111F18] font-black">Carregando Lead...</div>;
-    if (!lead) return <div className="p-12 text-center text-red-500 font-bold">Erro: Lead não encontrado ou você não tem acesso a ele.</div>;
+    const handleAnalyzeTech = async () => {
+        setAnalyzing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`/api/leads/${id}/analyze`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                setTechData(result.data);
+                await fetchLead();
+            } else {
+                alert(result.error || "Erro ao analisar viabilidade técnica.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro de conexão com a API Solar.");
+        } finally {
+            setAnalyzing(false);
+        }
+    };
+
+    if (loading) return <div className="p-12 text-center text-[#111F18] font-black italic animate-pulse">Carregando Detalhes do Lead...</div>;
+    if (!lead) return <div className="p-12 text-center text-red-500 font-bold">Erro: Lead não encontrado.</div>;
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 pb-12">
-            {/* Header / Nav */}
             <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
                 <Link href="/dashboard/leads" className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-slate-500 hover:text-[#14151C]">
                     <ArrowLeft size={18} />
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-black text-[#14151C]">Detalhes do Lead #{id}</h1>
+                    <h1 className="text-2xl font-black text-[#14151C]">Detalhes do Lead #{id.substring(0, 8)}</h1>
                     <p className="text-sm text-slate-500 font-medium tracking-wide">Gerencie informações e propostas deste contato.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                {/* Coluna Esquerda: Info do Lead */}
                 <div className="md:col-span-1 space-y-6">
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-slate-100/50 rounded-bl-full border-b border-l border-slate-100"></div>
                         <div className="flex flex-col items-center text-center space-y-4 pt-2">
                             <div className="w-20 h-20 rounded-full bg-slate-100 border-4 border-white shadow-sm flex items-center justify-center text-2xl font-black text-slate-400">
                                 {lead.initials}
@@ -202,7 +235,7 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                         <div className="mt-8 space-y-4">
                             <div className="flex items-center gap-3 text-sm text-slate-600">
                                 <Mail size={16} className="text-slate-400" />
-                                <span>{lead.email}</span>
+                                <span className="truncate">{lead.email}</span>
                             </div>
                             <div className="flex items-center gap-3 text-sm text-slate-600">
                                 <Phone size={16} className="text-slate-400" />
@@ -229,99 +262,141 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                     </div>
                 </div>
 
-                {/* Coluna Direita: Análise Técnica e Comercial */}
                 <div className="md:col-span-2 space-y-6">
-                    {/* Score Analytics */}
                     <div className={`bg-white rounded-2xl border-2 ${lead.scoreBorder} ${lead.scoreShadow} overflow-hidden relative p-6 transition-all`}>
                         <div className={`absolute top-0 right-8 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-b-lg shadow-sm z-10 flex items-center gap-1.5 ${lead.scoreBadgeBg}`}>
                             <Zap size={10} fill="currentColor" /> {lead.scoreBadgeText}
                         </div>
 
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className={`w-14 h-14 rounded-xl ${lead.scoreColor} flex items-center justify-center ${lead.scoreTextColor}`}>
-                                <span className="text-3xl font-black">{lead.score}</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-14 h-14 rounded-xl ${lead.scoreColor} flex items-center justify-center ${lead.scoreTextColor}`}>
+                                    <span className="text-3xl font-black">{lead.score}</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-[#14151C]">{lead.scoreLabel}</h3>
+                                    <p className="text-xs text-slate-500 font-medium">{lead.scoreDesc}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-[#14151C]">{lead.scoreLabel}</h3>
-                                <p className="text-xs text-slate-500 font-medium">{lead.scoreDesc}</p>
-                            </div>
+
+                            {lead.score === 'A' && !techData && (
+                                <button
+                                    onClick={handleAnalyzeTech}
+                                    disabled={analyzing}
+                                    className="px-4 py-2.5 bg-[#14151C] text-[#D0F252] rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg disabled:opacity-50"
+                                >
+                                    {analyzing ? "Analisando..." : "Analisar Viabilidade Técnica"}
+                                </button>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Conta de Luz</span>
-                                <span className="text-xl font-black text-[#14151C]">{lead.bill}</span>
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Conta</span>
+                                <span className="text-xl font-black text-[#14151C] text-sm lg:text-base xl:text-xl truncate">{lead.bill}</span>
                             </div>
                             <div className={`p-4 rounded-xl border ${lead.savingsColor}`}>
-                                <span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${lead.savingsLabelColor}`}>Economia Mês</span>
-                                <span className="text-xl font-black">{lead.savings}</span>
+                                <span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${lead.savingsLabelColor}`}>Economia</span>
+                                <span className="text-xl font-black text-sm lg:text-base xl:text-xl truncate">{lead.savings}</span>
                             </div>
                             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">CAPEX Est.</span>
-                                <span className="text-xl font-black text-[#14151C]">{lead.capex}</span>
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Invest.</span>
+                                <span className="text-xl font-black text-[#14151C] text-sm lg:text-base xl:text-xl truncate">{lead.capex}</span>
                             </div>
                             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                                 <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Payback</span>
-                                <span className="text-xl font-black text-[#14151C]">{lead.payback}</span>
+                                <span className="text-xl font-black text-[#14151C] text-sm lg:text-base xl:text-xl truncate">{lead.payback}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* System Parameters */}
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                        <div className="flex items-center gap-2 mb-6">
-                            <Home size={18} className="text-slate-400" />
-                            <h3 className="text-md font-bold text-[#14151C]">Parâmetros do Sistema (Estimado)</h3>
-                        </div>
+                    {techData && (
+                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-[#D0F252]/10 rounded-lg text-[#14151C]">
+                                        <Zap size={20} fill="#D0F252" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-[#14151C]">Laudo Técnico de Viabilidade</h3>
+                                        <p className="text-xs text-slate-500 font-medium tracking-wide">Google Solar API</p>
+                                    </div>
+                                </div>
+                                <div className="px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-100 flex items-center gap-1">
+                                    <CheckCircle2 size={12} /> Verificado
+                                </div>
+                            </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 border-t border-slate-50 pt-4">
-                            <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-200">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={techData.satelliteUrl} alt="Satélite" className="w-full h-full object-cover" />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/50">
+                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Área Útil</span>
+                                        <span className="text-xl font-black text-[#14151C]">{techData.areaM2.toFixed(1)} m²</span>
+                                    </div>
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/50">
+                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Irradiância</span>
+                                        <span className="text-xl font-black text-[#14151C]">{Math.round(techData.irradiance)} kWh</span>
+                                    </div>
+                                    <div className="p-4 bg-[#14151C] rounded-2xl border border-[#14151C]">
+                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">Potencial</span>
+                                        <span className="text-xl font-black text-[#D0F252]">{techData.maxKwp.toFixed(2)} kWp</span>
+                                    </div>
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/50">
+                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">ROI Est.</span>
+                                        <span className="text-xl font-black text-[#14151C]">{techData.payback} Anos</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-[#D0F252]/5 rounded-xl border border-[#D0F252]/20 text-xs text-[#1A4A38] font-medium">
+                                <b>Conclusão:</b> Análise de telhado confirma viabilidade para instalação.
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Home size={18} className="text-slate-400" />
+                            <h3 className="text-md font-bold text-[#14151C]">Parâmetros do Sistema</h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 border-t border-slate-100 pt-4">
+                            <div className="flex justify-between py-2 border-b border-slate-50">
                                 <span className="text-sm font-medium text-slate-500">Consumo Mensal:</span>
                                 <span className="text-sm font-bold text-[#14151C]">{lead.consumption}</span>
                             </div>
-                            <div className="flex items-center justify-between py-2 border-b border-slate-50 sm:pl-4 sm:border-l border-slate-50">
-                                <span className="text-sm font-medium text-slate-500">Área Disponível:</span>
+                            <div className="flex justify-between py-2 border-b border-slate-50 sm:pl-4 sm:border-l">
+                                <span className="text-sm font-medium text-slate-500">Área Estimada:</span>
                                 <span className="text-sm font-bold text-[#14151C]">{lead.area}</span>
-                            </div>
-                            <div className="flex items-center justify-between py-2 border-b border-slate-50">
-                                <span className="text-sm font-medium text-slate-500">Módulos Solares:</span>
-                                <span className="text-sm font-bold text-[#14151C]">{lead.modules}</span>
-                            </div>
-                            <div className="flex items-center justify-between py-2 border-b border-slate-50 sm:pl-4 sm:border-l border-slate-50">
-                                <span className="text-sm font-medium text-slate-500">Tipo de Telhado:</span>
-                                <span className="text-sm font-bold text-[#14151C]">{lead.roofType}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Timeline Activity */}
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                        <h3 className="text-md font-bold text-[#14151C] mb-6">Jornada no Simulador</h3>
-                        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-                            {/* Item */}
-                            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full border border-green-100 bg-[#D0F252] text-[#14151C] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                        <h3 className="text-md font-bold text-[#14151C] mb-4">Jornada</h3>
+                        <div className="space-y-4">
+                            {techData && (
+                                <div className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-[#14151C] text-[#D0F252] flex items-center justify-center shrink-0">
+                                        <Zap size={14} fill="currentColor" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-[#14151C]">Análise Técnica via Satélite</p>
+                                        <p className="text-xs text-slate-500">Viabilidade técnica verificada hoje.</p>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex gap-4">
+                                <div className="w-8 h-8 rounded-full bg-[#D0F252] text-[#14151C] flex items-center justify-center shrink-0">
                                     <CheckCircle2 size={16} />
                                 </div>
-                                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <h4 className="font-bold text-sm text-[#14151C]">Simulação Finalizada</h4>
-                                        <time className="text-[10px] text-slate-400 font-bold uppercase">Ontem, 14:30</time>
-                                    </div>
-                                    <p className="text-xs text-slate-500">Lead concluiu o funil do simulador com Score A gerado automaticamente.</p>
-                                </div>
-                            </div>
-                            {/* Item */}
-                            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 bg-white text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                                    <FileText size={14} />
-                                </div>
-                                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-100 bg-slate-50">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <h4 className="font-bold text-sm text-[#14151C]">Acesso ao Simulador</h4>
-                                        <time className="text-[10px] text-slate-400 font-bold uppercase">Ontem, 14:15</time>
-                                    </div>
-                                    <p className="text-xs text-slate-500">Lead iniciou preenchimento dos dados do consumo de energia.</p>
+                                <div>
+                                    <p className="text-sm font-bold text-[#14151C]">Simulação Finalizada</p>
+                                    <p className="text-xs text-slate-500">{lead.date}</p>
                                 </div>
                             </div>
                         </div>
