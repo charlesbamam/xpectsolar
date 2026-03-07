@@ -10,10 +10,10 @@ const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         // 1. Verificar autenticação do consultor
         const authHeader = req.headers.get("Authorization");
