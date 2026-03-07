@@ -311,50 +311,73 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                     </div>
 
                     {techData && (
-                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-[#D0F252]/10 rounded-lg text-[#14151C]">
-                                        <Zap size={20} fill="#D0F252" />
+                        <div className="relative bg-[#14151C] rounded-2xl border border-slate-800 shadow-2xl p-6 sm:p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-700 overflow-hidden mt-8">
+                            {/* Decorative background flare */}
+                            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#D0F252] opacity-10 rounded-full blur-[100px] pointer-events-none" />
+                            <div className="absolute bottom-[-20%] left-[-10%] w-[400px] h-[400px] bg-blue-500 opacity-[0.05] rounded-full blur-[80px] pointer-events-none" />
+
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-[#D0F252]/10 rounded-xl text-[#D0F252] border border-[#D0F252]/20 shadow-inner">
+                                        <Zap size={22} fill="currentColor" />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold text-[#14151C]">Laudo Técnico de Viabilidade</h3>
-                                        <p className="text-xs text-slate-500 font-medium tracking-wide">Google Solar API</p>
+                                        <h3 className="text-xl font-black text-white tracking-tight">Viabilidade Técnica de Satélite</h3>
+                                        <p className="text-xs text-slate-400 font-medium tracking-wide">Analisado via Google Solar API</p>
                                     </div>
                                 </div>
-                                <div className="px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-100 flex items-center gap-1">
-                                    <CheckCircle2 size={12} /> Verificado
+                                <div className="px-3 py-1.5 bg-[#D0F252]/20 text-[#D0F252] text-[10px] font-black uppercase tracking-widest rounded-full border border-[#D0F252]/30 flex items-center justify-center gap-1.5 w-max">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#D0F252] animate-pulse" /> Scanner 3D Concluído
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-200">
+                            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8 relative z-10">
+                                {/* Imagem de Satélite */}
+                                <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 group bg-slate-900">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-[#14151C] via-transparent to-[#14151C]/30 z-10 pointer-events-none" />
+
+                                    {/* Crosshair / UI elements over map */}
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 border border-[#D0F252]/50 rounded-full z-20 flex items-center justify-center pointer-events-none">
+                                        <div className="w-1 h-1 bg-[#D0F252] rounded-full" />
+                                    </div>
+                                    <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-white/90 drop-shadow-md bg-black/50 px-2 py-1 rounded backdrop-blur-sm">REC</span>
+                                    </div>
+
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={techData.satelliteUrl} alt="Satélite" className="w-full h-full object-cover" />
+                                    <img src={techData.satelliteUrl} alt="Satélite do Google Solar" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out opacity-90 mix-blend-luminosity hover:mix-blend-normal" />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/50">
-                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Área Útil</span>
-                                        <span className="text-xl font-black text-[#14151C]">{techData.areaM2.toFixed(1)} m²</span>
+                                {/* Dados Técnicos */}
+                                <div className="flex flex-col justify-center gap-4">
+                                    <h4 className="text-slate-300 font-bold text-sm tracking-wide uppercase mb-1">Métricas Extraídas do Telhado</h4>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Área Útil Estimada</span>
+                                            <span className="text-2xl font-black text-white">{techData.areaM2.toFixed(0)} <span className="text-sm font-medium text-slate-500">m²</span></span>
+                                        </div>
+                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Irradiância / Ano</span>
+                                            <span className="text-2xl font-black text-white">{Math.round(techData.irradiance)} <span className="text-sm font-medium text-slate-500">h</span></span>
+                                        </div>
+                                        <div className="col-span-2 p-5 bg-gradient-to-br from-[#D0F252]/20 to-[#D0F252]/5 rounded-2xl border border-[#D0F252]/30 backdrop-blur-md shadow-lg">
+                                            <div className="flex items-start justify-between">
+                                                <div>
+                                                    <span className="text-[11px] text-[#D0F252]/80 font-black uppercase tracking-widest block mb-1">Potencial Máximo Técnico</span>
+                                                    <span className="text-3xl font-black text-[#D0F252]">{techData.maxKwp.toFixed(2)} <span className="text-base font-bold">kWp</span></span>
+                                                </div>
+                                                <Zap size={32} className="text-[#D0F252] opacity-50" />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/50">
-                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Irradiância</span>
-                                        <span className="text-xl font-black text-[#14151C]">{Math.round(techData.irradiance)} kWh</span>
-                                    </div>
-                                    <div className="p-4 bg-[#14151C] rounded-2xl border border-[#14151C]">
-                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-1">Potencial</span>
-                                        <span className="text-xl font-black text-[#D0F252]">{techData.maxKwp.toFixed(2)} kWp</span>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/50">
-                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">ROI Est.</span>
-                                        <span className="text-xl font-black text-[#14151C]">{techData.payback} Anos</span>
+
+                                    <div className="mt-4 p-4 bg-green-500/10 rounded-xl border border-green-500/20 text-xs text-green-400 font-medium flex gap-3 items-start">
+                                        <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-green-400" />
+                                        <p><b>Conclusão Física:</b> O algoritmo do satélite confirmou área de luz desobstruída suficiente para a potência apresentada, descartando pontos de sombra contínuos.</p>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="p-4 bg-[#D0F252]/5 rounded-xl border border-[#D0F252]/20 text-xs text-[#1A4A38] font-medium">
-                                <b>Conclusão:</b> Análise de telhado confirma viabilidade para instalação.
                             </div>
                         </div>
                     )}
