@@ -258,6 +258,9 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                             <a href={`https://wa.me/55${lead.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="w-full bg-[#25D366]/10 text-[#075E54] border border-[#25D366]/30 py-2 rounded-lg font-bold text-sm hover:bg-[#25D366]/20 transition-colors flex items-center justify-center gap-2">
                                 Iniciar WhatsApp
                             </a>
+                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.address)}`} target="_blank" rel="noopener noreferrer" className="w-full bg-blue-500/10 text-blue-700 border border-blue-500/30 py-2 rounded-lg font-bold text-sm hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-2">
+                                <MapPin size={16} /> Abrir no Maps
+                            </a>
                         </div>
                     </div>
                 </div>
