@@ -92,9 +92,7 @@ export async function POST(
             return NextResponse.json({ error: "Lead não encontrado" }, { status: 404 });
         }
 
-        if (lead.score !== "A" && lead.score !== "B") {
-            return NextResponse.json({ error: "Apenas leads com Score A ou B são elegíveis para Análise de Viabilidade Técnica por Satélite." }, { status: 403 });
-        }
+        // Removida a verificação de Score A ou B para permitir que qualquer lead seja analisado.
 
         const sData = lead.simulation_data || {};
         const address = `${sData.numeroCasa || ""}, ${sData.cep || ""}, Brazil`.trim();

@@ -283,7 +283,6 @@ function LeadRow({ id, name, email, address, score, savings, status, date, techA
 
     const handleAnalyze = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (score !== 'A' && score !== 'B') return;
         setAnalyzing(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -296,6 +295,7 @@ function LeadRow({ id, name, email, address, score, savings, status, date, techA
             const result = await res.json();
             if (result.success) {
                 onAnalyzeSuccess();
+                router.push(`/dashboard/leads/${id}`);
             } else {
                 alert(result.error || "Erro ao analisar.");
             }
@@ -348,20 +348,20 @@ function LeadRow({ id, name, email, address, score, savings, status, date, techA
             </td>
             <td className="px-6 py-4 text-right">
                 <div className="flex items-center justify-end gap-2">
-                    {/* Botão Analisar (Score A ou B e ainda não analisado) */}
-                    {(score === 'A' || score === 'B') && !techAnalyzed && (
+                    {/* Botão Analisar (Ainda não analisado) */}
+                    {!techAnalyzed && (
                         <button
                             onClick={handleAnalyze}
                             disabled={analyzing}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 ${score === 'A' ? 'bg-[#14151C] text-[#D0F252] hover:bg-black' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'} `}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 bg-[#14151C] text-[#D0F252] hover:bg-black`}
                         >
-                            <Zap size={14} className={score === 'A' ? 'fill-current' : ''} />
+                            <Zap size={14} className="fill-current" />
                             {analyzing ? "Analisando..." : "Analisar"}
                         </button>
                     )}
 
                     {/* Botão Analisado */}
-                    {(score === 'A' || score === 'B') && techAnalyzed && (
+                    {techAnalyzed && (
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#D0F252]/10 text-[#6B8C49] border border-[#D0F252]/30 text-[10px] font-bold uppercase">
                             <CheckCircle2 size={14} /> Analisado
                         </div>
