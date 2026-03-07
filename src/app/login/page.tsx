@@ -39,7 +39,7 @@ export default function LoginPage() {
         }
     };
 
-    const handleSocialLogin = async (provider: 'google' | 'facebook') => {
+    const handleSocialLogin = async (provider: 'google') => {
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
