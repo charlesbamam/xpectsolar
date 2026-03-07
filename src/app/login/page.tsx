@@ -94,7 +94,7 @@ export default function LoginPage() {
                         <div className="space-y-2">
                             <div className="flex items-center justify-between ml-1">
                                 <label htmlFor="password" className="block text-sm font-medium text-slate-700">Senha</label>
-                                <Link href="#" className="text-sm font-medium text-slate-400 hover:text-[#14151C] transition-colors">Esqueceu a senha?</Link>
+                                <Link href="/auth/forgot-password" className="text-sm font-medium text-slate-400 hover:text-[#14151C] transition-colors">Esqueceu a senha?</Link>
                             </div>
                             <div className="relative group">
                                 <input
