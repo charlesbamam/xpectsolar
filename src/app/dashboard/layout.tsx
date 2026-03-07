@@ -11,12 +11,52 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const pathname = usePathname();
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [fullName, setFullName] = useState<string>("Consultor Solar");
+    const [planType, setPlanType] = useState<string>("free");
+    const [usage, setUsage] = useState<number>(0);
+    const [limit, setLimit] = useState<number>(2);
 
     useEffect(() => {
-        const loadProfile = () => {
+        const loadProfile = async () => {
             setAvatarUrl(localStorage.getItem("userAvatar"));
             const storedName = localStorage.getItem("userFullName");
             if (storedName) setFullName(storedName);
+
+            // Tenta pegar do localStorage primeiro
+            const storedPlan = localStorage.getItem("userPlan");
+            if (storedPlan) {
+                setPlanType(storedPlan);
+                setLimit(storedPlan === 'free' ? 2 : 100);
+            }
+
+            // Fetch do banco para garantir
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                // 1. Dados do Consultor
+                const { data } = await supabase.from('consultants').select('full_name, avatar_url, plan_type').eq('id', user.id).single();
+                if (data) {
+                    if (data.full_name) {
+                        setFullName(data.full_name);
+                        localStorage.setItem("userFullName", data.full_name);
+                    }
+                    if (data.avatar_url) {
+                        setAvatarUrl(data.avatar_url);
+                        localStorage.setItem("userAvatar", data.avatar_url);
+                    }
+                    if (data.plan_type) {
+                        setPlanType(data.plan_type);
+                        setLimit(data.plan_type === 'free' ? 2 : 100);
+                        localStorage.setItem("userPlan", data.plan_type);
+                    }
+                }
+
+                // 2. Contagem de Leads
+                const { count } = await supabase
+                    .from('leads')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('consultant_id', user.id);
+
+                if (count !== null) setUsage(count);
+            }
         };
         loadProfile();
         window.addEventListener("avatarUpdated", loadProfile);
@@ -68,7 +108,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 <div className="p-4 border-t border-slate-100 bg-slate-50/50 mt-auto">
                     <div className="flex items-center gap-3 px-2 py-2">
-                        <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-100 shadow-sm">
                             {avatarUrl ? (
                                 <Image src={avatarUrl} alt="Avatar" width={36} height={36} className="w-full h-full object-cover" unoptimized />
                             ) : (
@@ -77,7 +117,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-[#14151C] truncate">{fullName}</p>
-                            <p className="text-[11px] font-medium text-slate-500 truncate">Plano Essencial</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                {planType === 'free' ? 'Teste Gratuito' : 'Plano Essencial'}
+                            </p>
                         </div>
                     </div>
                     <button
@@ -99,7 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="flex items-center gap-4">
                         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60 shadow-sm">
                             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Análises:</span>
-                            <span className="text-sm font-bold text-[#14151C]">98<span className="text-slate-400 font-normal">/100</span></span>
+                            <span className="text-sm font-bold text-[#14151C]">{usage}<span className="text-slate-400 font-normal">/{limit}</span></span>
                         </div>
                         <div className="w-px h-6 bg-slate-200 hidden md:block"></div>
                         <button className="relative p-2.5 text-slate-400 hover:text-[#14151C] transition-colors rounded-full hover:bg-slate-100">
