@@ -37,8 +37,8 @@ export async function POST(
         // 2. Verificar/Resetar créditos do consultor
         const { data: consultant, error: consultantError } = await supabaseAdmin
             .from("consultants")
-            .select("id, user_id, solar_api_credits, solar_api_last_reset")
-            .eq("user_id", user.id)
+            .select("id, plan_type, solar_api_credits, solar_api_last_reset")
+            .eq("id", user.id)
             .single();
 
         if (consultantError || !consultant) {
@@ -48,21 +48,23 @@ export async function POST(
         let currentCredits = consultant.solar_api_credits;
         const lastReset = consultant.solar_api_last_reset ? new Date(consultant.solar_api_last_reset) : null;
         const now = new Date();
+        const maxCredits = consultant.plan_type === 'free' || !consultant.plan_type ? 2 : 100;
 
         // Lógica de reset mensal (30 dias)
-        if (!lastReset || (now.getTime() - lastReset.getTime() > 30 * 24 * 60 * 60 * 1000)) {
-            currentCredits = 100;
+        if (currentCredits === null || currentCredits === undefined || !lastReset || (now.getTime() - lastReset.getTime() > 30 * 24 * 60 * 60 * 1000)) {
+            currentCredits = maxCredits;
             await supabaseAdmin
                 .from("consultants")
                 .update({
-                    solar_api_credits: 100,
+                    solar_api_credits: maxCredits,
                     solar_api_last_reset: now.toISOString()
                 })
-                .eq("user_id", user.id);
+                .eq("id", user.id);
         }
 
         if (currentCredits <= 0) {
-            return NextResponse.json({ error: "Você atingiu seu limite de 100 análises técnicas para este mês." }, { status: 403 });
+            const upgMsg = maxCredits === 2 ? " Faça upgrade para liberar 100 análises." : "";
+            return NextResponse.json({ error: `Você atingiu seu limite de ${maxCredits} análises técnicas para este mês.${upgMsg}` }, { status: 403 });
         }
 
         // 3. Buscar dados do Lead
@@ -75,6 +77,10 @@ export async function POST(
 
         if (leadError || !lead) {
             return NextResponse.json({ error: "Lead não encontrado" }, { status: 404 });
+        }
+
+        if (lead.score !== "A" && lead.score !== "B") {
+            return NextResponse.json({ error: "Apenas leads com Score A ou B são elegíveis para Análise de Viabilidade Técnica por Satélite." }, { status: 403 });
         }
 
         const sData = lead.simulation_data || {};
@@ -137,7 +143,7 @@ export async function POST(
         await supabaseAdmin
             .from("consultants")
             .update({ solar_api_credits: currentCredits - 1 })
-            .eq("user_id", user.id);
+            .eq("id", user.id);
 
         return NextResponse.json({
             success: true,
@@ -151,6 +157,7 @@ export async function POST(
             }
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
         console.error("Erro na Solar API:", err);
         return NextResponse.json({ error: "Falha na análise técnica satelital." }, { status: 500 });

@@ -1,7 +1,7 @@
 "use client";
 
-import { Search, Filter, Download, CheckCircle2, AlertTriangle, XCircle, MapPin, Calendar, ArrowUpRight } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { Search, Filter, Download, CheckCircle2, AlertTriangle, XCircle, MapPin, Calendar, ArrowUpRight, Zap } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -14,6 +14,7 @@ type Lead = {
     estimated_savings: number;
     estimated_capex: number;
     status: string;
+    tech_analyzed: boolean;
     created_at: string;
 };
 
@@ -26,30 +27,30 @@ export default function LeadsPage() {
     const [periodFilter, setPeriodFilter] = useState("Todos");
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-    useEffect(() => {
-        const fetchLeads = async () => {
-            setLoading(true);
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+    const fetchLeads = useCallback(async () => {
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
-                const { data, error } = await supabase
-                    .from('leads')
-                    .select('*')
-                    .eq('consultant_id', user.id)
-                    .order('created_at', { ascending: false });
+            const { data, error } = await supabase
+                .from('leads')
+                .select('*')
+                .eq('consultant_id', user.id)
+                .order('created_at', { ascending: false });
 
-                if (error) throw error;
-                if (data) setLeads(data);
-            } catch (err) {
-                console.error("Erro ao buscar leads:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchLeads();
+            if (error) throw error;
+            if (data) setLeads(data);
+        } catch (err) {
+            console.error("Erro ao buscar leads:", err);
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchLeads();
+    }, [fetchLeads]);
 
     const filteredLeads = useMemo(() => {
         return leads.filter((lead) => {
@@ -236,6 +237,8 @@ export default function LeadsPage() {
                                         savings={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.estimated_savings)}
                                         status={lead.status || "Novo"}
                                         date={formatDate(lead.created_at)}
+                                        techAnalyzed={lead.tech_analyzed}
+                                        onAnalyzeSuccess={fetchLeads}
                                     />
                                 ))
                             ) : (
@@ -253,10 +256,12 @@ export default function LeadsPage() {
     );
 }
 
-function LeadRow({ id, name, email, address, score, savings, status, date }: {
-    id: string, name: string, email: string, address: string, score: string, savings: string, status: string, date: string
+function LeadRow({ id, name, email, address, score, savings, status, date, techAnalyzed, onAnalyzeSuccess }: {
+    id: string, name: string, email: string, address: string, score: string, savings: string, status: string, date: string, techAnalyzed: boolean, onAnalyzeSuccess: () => void
 }) {
     const router = useRouter();
+    const [analyzing, setAnalyzing] = useState(false);
+
     const getScoreStyles = (s: string) => {
         switch (s) {
             case "A": return "bg-[#D0F252]/20 text-slate-800 border-[#D0F252]";
@@ -273,6 +278,32 @@ function LeadRow({ id, name, email, address, score, savings, status, date }: {
             case "Pendente": return "text-yellow-600 bg-yellow-50 border-yellow-200";
             case "Arquivado": return "text-slate-500 bg-slate-50 border-slate-200";
             default: return "text-slate-500 bg-slate-100 border-slate-200";
+        }
+    };
+
+    const handleAnalyze = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (score !== 'A' && score !== 'B') return;
+        setAnalyzing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`/api/leads/${id}/analyze`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            const result = await res.json();
+            if (result.success) {
+                onAnalyzeSuccess();
+            } else {
+                alert(result.error || "Erro ao analisar.");
+            }
+        } catch (err) {
+            console.error("Erro ao analisar:", err);
+            alert("Erro de conexão ao tentar analisar o lead.");
+        } finally {
+            setAnalyzing(false);
         }
     };
 
@@ -316,9 +347,30 @@ function LeadRow({ id, name, email, address, score, savings, status, date }: {
                 </div>
             </td>
             <td className="px-6 py-4 text-right">
-                <button className="p-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-[#14151C] transition-colors shadow-sm">
-                    <ArrowUpRight size={16} />
-                </button>
+                <div className="flex items-center justify-end gap-2">
+                    {/* Botão Analisar (Score A ou B e ainda não analisado) */}
+                    {(score === 'A' || score === 'B') && !techAnalyzed && (
+                        <button
+                            onClick={handleAnalyze}
+                            disabled={analyzing}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 ${score === 'A' ? 'bg-[#14151C] text-[#D0F252] hover:bg-black' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'} `}
+                        >
+                            <Zap size={14} className={score === 'A' ? 'fill-current' : ''} />
+                            {analyzing ? "Analisando..." : "Analisar"}
+                        </button>
+                    )}
+
+                    {/* Botão Analisado */}
+                    {(score === 'A' || score === 'B') && techAnalyzed && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#D0F252]/10 text-[#6B8C49] border border-[#D0F252]/30 text-[10px] font-bold uppercase">
+                            <CheckCircle2 size={14} /> Analisado
+                        </div>
+                    )}
+
+                    <button className="p-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-[#14151C] transition-colors shadow-sm">
+                        <ArrowUpRight size={16} />
+                    </button>
+                </div>
             </td>
         </tr>
     );
