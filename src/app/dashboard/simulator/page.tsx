@@ -168,7 +168,7 @@ export default function SimulatorConfigPage() {
                                 {isCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
                                 <span className="hidden sm:inline">{isCopied ? 'Copiado!' : 'Copiar'}</span>
                             </button>
-                            <Link href={`https://${publicLink}`} target="_blank" className="p-3 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors">
+                            <Link href={`/s/${generatedSlug}`} target="_blank" className="p-3 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors">
                                 <ExternalLink size={20} />
                             </Link>
                         </div>

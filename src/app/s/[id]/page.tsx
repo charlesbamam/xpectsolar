@@ -92,6 +92,10 @@ interface CalculationResults {
     areaTelhado: string;
     geracaoMensal: number;
     economiaTotal25: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    solarData?: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    locationData?: any;
 }
 
 export default function PublicSimulator() {
@@ -110,6 +114,7 @@ export default function PublicSimulator() {
         email: "",
         phone: "",
         cep: "",
+        rua: "",
         numeroCasa: "",
         estado: "",
         cidade: "",
@@ -178,7 +183,8 @@ export default function PublicSimulator() {
         updateData("phone", formatted);
     };
 
-    const calculateResults = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const calculateResults = (solarData: any = null, locationData: any = null) => {
         const consumo = Number(formData.consumo);
         const tarifa = TARIFAS[formData.estado]?.tarifa || 0.82;
 
@@ -192,7 +198,16 @@ export default function PublicSimulator() {
 
         const consumoCompensavel = consumo * 0.95;
         const potenciaSistema = consumoCompensavel / (horasSolPico * 30 * (1 - perdaSistema));
-        const numPlacas = Math.ceil(potenciaSistema / potenciaPlaca);
+        let numPlacas = Math.ceil(potenciaSistema / potenciaPlaca);
+
+        // Ajuste pelo Google Solar
+        if (solarData && solarData.solarPotential) {
+            const maxPanels = solarData.solarPotential.maxArrayPanelsCount;
+            if (maxPanels && numPlacas > maxPanels) {
+                numPlacas = maxPanels;
+            }
+        }
+
         const potenciaReal = numPlacas * potenciaPlaca;
         const areaTelhado = numPlacas * areaPlaca;
         const geracaoMensal = potenciaReal * horasSolPico * 30 * (1 - perdaSistema);
@@ -219,7 +234,9 @@ export default function PublicSimulator() {
             potenciaReal: potenciaReal.toFixed(2),
             areaTelhado: areaTelhado.toFixed(1),
             geracaoMensal: Math.round(geracaoMensal),
-            economiaTotal25
+            economiaTotal25,
+            solarData,
+            locationData
         };
 
         setResults(newResults);
@@ -274,7 +291,9 @@ export default function PublicSimulator() {
                     numeroCasa: formData.numeroCasa,
                     consumo_kwh: formData.consumo,
                     num_placas: resultsData.numPlacas,
-                    potencia: resultsData.potenciaReal
+                    potencia: resultsData.potenciaReal,
+                    google_solar_available: !!resultsData.solarData,
+                    location: resultsData.locationData || null
                 }
             });
 
@@ -285,24 +304,46 @@ export default function PublicSimulator() {
         }
     };
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (step === "lead") {
             if (validateLead()) setStep("location");
         }
         else if (step === "location") {
-            if (!formData.estado || !formData.cidade || !formData.cep || !formData.numeroCasa) {
+            if (!formData.estado || !formData.cidade || !formData.cep || !formData.rua || !formData.numeroCasa) {
                 setErrors({ location: "Preencha todos os campos corretamente para continuar." });
                 return;
             }
             setStep("loading");
-            const calculatedResults = calculateResults();
 
-            // Salva o lead no banco de dados
-            if (calculatedResults) {
-                saveLead(calculatedResults);
+            try {
+                const addressString = `${formData.rua}, ${formData.numeroCasa}, ${formData.cidade} - ${formData.estado}, ${formData.cep}, Brasil`;
+                const res = await fetch("/api/simulate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ address: addressString })
+                });
+
+                let solarData = null;
+                let locationData = null;
+
+                if (res.ok) {
+                    const data = await res.json();
+                    solarData = data.solarData;
+                    locationData = data.location;
+                }
+
+                const calculatedResults = calculateResults(solarData, locationData);
+                setResults(calculatedResults);
+                await saveLead(calculatedResults);
+                setStep("result");
+
+            } catch (err) {
+                console.error("Erro na simulação Solar API:", err);
+                const calculatedResults = calculateResults();
+                setResults(calculatedResults);
+                await saveLead(calculatedResults);
+                setStep("result");
             }
-
-            setTimeout(() => setStep("result"), 4500);
         }
     };
 
@@ -488,11 +529,43 @@ export default function PublicSimulator() {
                                             type="text"
                                             placeholder="00000-000"
                                             value={formData.cep}
-                                            onChange={(e) => {
+                                            onChange={async (e) => {
                                                 const raw = e.target.value.replace(/\D/g, '').slice(0, 8);
                                                 const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
                                                 updateData('cep', formatted);
+
+                                                if (raw.length === 8) {
+                                                    try {
+                                                        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
+                                                        const data = await res.json();
+                                                        if (!data.erro) {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                rua: data.logradouro || '',
+                                                                estado: data.uf || prev.estado,
+                                                                cidade: data.localidade || prev.cidade
+                                                            }));
+                                                            setErrors(prev => {
+                                                                const newErrors = { ...prev };
+                                                                delete newErrors.location;
+                                                                return newErrors;
+                                                            });
+                                                        }
+                                                    } catch (err) {
+                                                        console.error("Erro ao buscar CEP", err);
+                                                    }
+                                                }
                                             }}
+                                            className="w-full bg-[#f8faf7] border-2 border-slate-100 px-4 py-3.5 rounded-xl focus:bg-white focus:outline-none focus:border-[#2ECC8C] transition-all font-medium text-[#111F18]"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <label className="text-sm font-bold text-[#111F18] ml-1">Rua*</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Nome da rua"
+                                            value={formData.rua}
+                                            onChange={(e) => updateData('rua', e.target.value)}
                                             className="w-full bg-[#f8faf7] border-2 border-slate-100 px-4 py-3.5 rounded-xl focus:bg-white focus:outline-none focus:border-[#2ECC8C] transition-all font-medium text-[#111F18]"
                                         />
                                     </div>
@@ -528,6 +601,9 @@ export default function PublicSimulator() {
                                             className="w-full bg-[#f8faf7] border-2 border-slate-100 px-4 py-3.5 rounded-xl focus:bg-white focus:outline-none focus:border-[#2ECC8C] transition-all font-medium text-[#111F18] disabled:opacity-40 appearance-none"
                                         >
                                             <option value="">Selecione a Cidade</option>
+                                            {formData.estado && formData.cidade && (!CIDADES[formData.estado] || !CIDADES[formData.estado].includes(formData.cidade)) && (
+                                                <option value={formData.cidade}>{formData.cidade}</option>
+                                            )}
                                             {formData.estado && CIDADES[formData.estado]?.map(cid => (
                                                 <option key={cid} value={cid}>{cid}</option>
                                             ))}
@@ -587,7 +663,7 @@ export default function PublicSimulator() {
                                 <div className="flex flex-col gap-4 pt-4">
                                     <button
                                         onClick={handleNext}
-                                        disabled={!formData.estado || !formData.cidade || !formData.cep || !formData.numeroCasa || Number(formData.consumo) < 50}
+                                        disabled={!formData.estado || !formData.cidade || !formData.cep || !formData.rua || !formData.numeroCasa || Number(formData.consumo) < 50}
                                         className="w-full bg-[#D4E44A] hover:bg-[#C0CF33] disabled:opacity-50 disabled:cursor-not-allowed text-[#111F18] py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all hover:-translate-y-1 shadow-xl shadow-[#D4E44A]/20 group"
                                     >
                                         <Calculator className="group-hover:rotate-12 transition-transform" /> Calcular Economia Agora
@@ -690,6 +766,19 @@ export default function PublicSimulator() {
                                             <span className="text-xs font-bold text-[#111F18] mt-1">NA CONTA DE LUZ</span>
                                         </div>
                                     </div>
+
+                                    {/* Google Satélite Info */}
+                                    {results.solarData?.solarPotential && (
+                                        <div className="md:col-span-3 bg-[#EEF2DC] p-6 rounded-[24px] border border-[#D4E44A]/50 flex items-start gap-4 animate-in fade-in duration-500">
+                                            <div className="p-3 bg-white rounded-xl shadow-sm text-[#1A4A38]">
+                                                <Sun size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-[#1A4A38] font-black text-lg mb-1">Satélite do Google detectou o seu telhado!</h4>
+                                                <p className="text-[#1A4A38]/80 text-sm font-medium">Análise de IA identificou que seu telhado suporta um limite de <b>{results.solarData.solarPotential.maxArrayPanelsCount} painéis</b>, numa área máxima de <b>{Math.round(results.solarData.solarPotential.maxArrayAreaMeters2)}m²</b> (com incidência de luz ideal). O cálculo acima considerou essas limitações reais físicas da sua casa.</p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Outros Cards de Info */}
                                     <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 space-y-2 flex flex-col justify-center">
