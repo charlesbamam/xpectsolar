@@ -357,7 +357,7 @@ export default function PublicSimulator() {
                     {step === "lead" && (
                         <div className="p-8 md:p-12 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                             <div className="text-center space-y-3">
-                                <div className="inline-flex items-center px-3 py-1 bg-[#EEF2DC] text-[#1A4A38] text-[10px] font-bold tracking-widest uppercase rounded-full">Olá, eu sou {consultant?.full_name?.split(' ')[0] || 'o consultor'}! 👋</div>
+                                <div className="inline-flex items-center px-3 py-1 bg-[#EEF2DC] text-[#1A4A38] text-[10px] font-bold tracking-widest uppercase rounded-full">Simulador de consumo</div>
                                 <h2 className="text-3xl font-black text-[#111F18] font-['Space_Grotesk'] leading-tight">Calcule a sua economia na conta de energia 👇</h2>
                                 <p className="text-[#6B8F72] font-medium">Preencha seus dados para liberar a simulação gratuita</p>
                             </div>
