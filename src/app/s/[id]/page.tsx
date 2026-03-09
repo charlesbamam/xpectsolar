@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
+import Script from "next/script"; // Added Script import
 import {
     Zap, Calculator, CheckCircle2, Phone,
     ArrowRight, ArrowLeft, Building2, Home as HomeIcon,
     PanelsTopLeft, TrendingUp,
     Leaf, ShieldCheck, AreaChart, DollarSign, Calendar,
-    Sun, Loader2
+    Sun, Loader2, MapPin
 } from "lucide-react";
 
 type FunnelStep = "lead" | "location" | "loading" | "result";
@@ -96,6 +97,8 @@ interface CalculationResults {
     solarData?: any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     locationData?: any;
+    lat?: number;
+    lng?: number;
 }
 
 export default function PublicSimulator() {
@@ -116,13 +119,71 @@ export default function PublicSimulator() {
         cep: "",
         rua: "",
         numeroCasa: "",
+        complemento: "",
         estado: "",
         cidade: "",
-        consumo: "350"
+        consumo: "350",
+        lat: 0 as number,
+        lng: 0 as number
     });
+
+    const [mapReady, setMapReady] = useState(false);
+    const [showMap, setShowMap] = useState(false);
+    const [isGeocoding, setIsGeocoding] = useState(false);
+    const mapRef = useRef<HTMLDivElement>(null);
+    const mapInitialized = useRef(false);
 
     const [results, setResults] = useState<CalculationResults | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const openMap = async () => {
+        setIsGeocoding(true);
+        const addressString = `${formData.rua}, ${formData.numeroCasa}, ${formData.cidade} - ${formData.estado}, ${formData.cep}, Brasil`;
+        try {
+            const res = await fetch("/api/geocode", {
+                method: "POST",
+                body: JSON.stringify({ address: addressString }),
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            if (data.success) {
+                updateData('lat', data.location.lat);
+                updateData('lng', data.location.lng);
+                setShowMap(true);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+        setIsGeocoding(false);
+    };
+
+    useEffect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (showMap && mapReady && mapRef.current && (window as any).google && !mapInitialized.current) {
+            mapInitialized.current = true;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const google = (window as any).google;
+            const map = new google.maps.Map(mapRef.current, {
+                center: { lat: formData.lat, lng: formData.lng },
+                zoom: 19,
+                mapTypeId: 'satellite',
+                disableDefaultUI: true,
+                zoomControl: true
+            });
+            const marker = new google.maps.Marker({
+                position: { lat: formData.lat, lng: formData.lng },
+                map,
+                draggable: true,
+                title: "Arraste para o seu telhado",
+                animation: google.maps.Animation.DROP,
+            });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            marker.addListener("dragend", (e: any) => {
+                updateData('lat', e.latLng.lat());
+                updateData('lng', e.latLng.lng());
+            });
+        }
+    }, [showMap, mapReady, formData.lat, formData.lng]);
 
     useEffect(() => {
         if (!slug) return;
@@ -293,7 +354,9 @@ export default function PublicSimulator() {
                     num_placas: resultsData.numPlacas,
                     potencia: resultsData.potenciaReal,
                     google_solar_available: !!resultsData.solarData,
-                    location: resultsData.locationData || null
+                    location: resultsData.locationData || null,
+                    lat: formData.lat || null,
+                    lng: formData.lng || null
                 }
             });
 
@@ -317,10 +380,14 @@ export default function PublicSimulator() {
 
             try {
                 const addressString = `${formData.rua}, ${formData.numeroCasa}, ${formData.cidade} - ${formData.estado}, ${formData.cep}, Brasil`;
+                const payload = formData.lat && formData.lng
+                    ? { address: addressString, lat: formData.lat, lng: formData.lng }
+                    : { address: addressString };
+
                 const res = await fetch("/api/simulate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ address: addressString })
+                    body: JSON.stringify(payload)
                 });
 
                 let solarData = null;
@@ -353,6 +420,13 @@ export default function PublicSimulator() {
 
     return (
         <div className="min-h-screen bg-[#F4F9F1] font-sans selection:bg-[#D4E44A]/30 flex flex-col items-center">
+            {/* Maps API Script */}
+            <Script
+                src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+                strategy="lazyOnload"
+                onLoad={() => setMapReady(true)}
+            />
+
             {/* Header / Branding do Consultor */}
             <div className="w-full max-w-4xl mx-auto px-4 pt-6">
                 <div className="bg-[#111F18] rounded-[32px] p-6 text-center relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4">
@@ -580,6 +654,16 @@ export default function PublicSimulator() {
                                         />
                                     </div>
                                     <div className="space-y-2">
+                                        <label className="text-sm font-bold text-[#111F18] ml-1">Complemento (Opcional)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: Condomínio, Lote 4, Bloco B"
+                                            value={formData.complemento}
+                                            onChange={(e) => updateData('complemento', e.target.value)}
+                                            className="w-full bg-[#f8faf7] border-2 border-slate-100 px-4 py-3.5 rounded-xl focus:bg-white focus:outline-none focus:border-[#2ECC8C] transition-all font-medium text-[#111F18]"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
                                         <label className="text-sm font-bold text-[#111F18] ml-1">Estado (UF)*</label>
                                         <select
                                             value={formData.estado}
@@ -659,6 +743,34 @@ export default function PublicSimulator() {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Map Section */}
+                                {(!showMap && formData.rua && formData.numeroCasa && formData.cidade) ? (
+                                    <div className="pt-4 border-t border-slate-100 mt-4">
+                                        <div className="bg-[#EEF2DC] rounded-xl p-5 border border-[#1A4A38]/10 text-center">
+                                            <p className="text-[#1A4A38] text-sm font-medium mb-3">Mora em condomínio, chácara ou local com numeração interna?</p>
+                                            <button
+                                                onClick={openMap}
+                                                disabled={isGeocoding}
+                                                className="bg-white border-2 border-[#1A4A38]/20 px-4 py-2 text-[#1A4A38] font-bold text-sm rounded-lg hover:bg-slate-50 transition-colors shadow-sm inline-flex items-center gap-2 disabled:opacity-50"
+                                            >
+                                                {isGeocoding ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                                                Confirmar no Mapa (Opcional)
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : showMap ? (
+                                    <div className="pt-4 border-t border-slate-100 mt-4 animate-in fade-in slide-in-from-top-4">
+                                        <div className="bg-[#1A4A38] text-white p-4 rounded-t-xl">
+                                            <h4 className="font-bold text-sm flex items-center gap-2"><MapPin size={16} className="text-[#D4E44A]" /> Ajuste Fino de GPS</h4>
+                                            <p className="text-xs text-[#D8EDD5] mt-1">Deslize o mapa e coloque o pino vermelho <b>exatamente em cima do seu telhado</b> para melhorar a precisão da avaliação do satélite.</p>
+                                        </div>
+                                        <div
+                                            ref={mapRef}
+                                            className="w-full h-[300px] bg-slate-200 rounded-b-xl overflow-hidden border-x border-b border-slate-200"
+                                        />
+                                    </div>
+                                ) : null}
 
                                 <div className="flex flex-col gap-4 pt-4">
                                     <button
@@ -941,7 +1053,7 @@ export default function PublicSimulator() {
                     background: linear-gradient(135deg, #111F18 0%, #1A4A38 100%);
                 }
             `}</style>
-        </div>
+        </div >
     );
 }
 
