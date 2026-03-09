@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Calculator, CreditCard, Settings, LogOut, Bell, User } from "lucide-react";
+import { LayoutDashboard, Users, Calculator, CreditCard, Settings, LogOut, Bell, User, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -14,6 +14,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [planType, setPlanType] = useState<string>("free");
     const [usage, setUsage] = useState<number>(0);
     const [limit, setLimit] = useState<number>(2);
+    const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+
+    // Fechar a barra lateral no mobile sempre que a rota (pathname) mudar
+    useEffect(() => {
+        setIsSidebarOpen(false);
+    }, [pathname]);
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -80,15 +86,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             window.location.href = "/login";
         }
     };
-
     return (
-        <div className="min-h-screen bg-mesh-green text-[#14151C] font-sans flex p-4 gap-4">
+        <div className="min-h-screen bg-mesh-green text-[#14151C] font-sans flex flex-col lg:flex-row p-2 lg:p-4 gap-4 relative">
+            {/* Overlay Mobile */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className="w-64 bg-white rounded-[0.8rem] border border-slate-200/60 shadow-sm flex-shrink-0 flex flex-col z-20 sticky top-4 h-[calc(100vh-2rem)] overflow-hidden">
-                <div className="h-16 flex items-center px-6 border-b border-slate-100">
+            <aside className={`w-64 bg-white rounded-[0.8rem] border border-slate-200/60 shadow-lg flex-shrink-0 flex flex-col z-40 fixed inset-y-4 left-4 lg:sticky lg:top-4 h-[calc(100vh-2rem)] overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${isSidebarOpen ? "translate-x-0" : "-translate-x-[calc(100%+2rem)] lg:translate-x-0"}`}>
+                <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100">
                     <Link href="/dashboard" className="flex items-center group">
                         <Image src="/logo.svg" alt="Xpect Solar" width={160} height={40} className="h-8 w-auto transition-transform group-hover:scale-105" />
                     </Link>
+                    <button
+                        className="p-1.5 lg:hidden text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors -mr-2"
+                        onClick={() => setIsSidebarOpen(false)}
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1 custom-scrollbar">
@@ -132,10 +151,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col bg-white rounded-[0.8rem] border border-slate-200/60 shadow-sm h-[calc(100vh-2rem)] overflow-y-auto relative custom-scrollbar">
+            <main className="flex-1 flex flex-col bg-white rounded-[0.8rem] border border-slate-200/60 shadow-sm h-[calc(100vh-1rem)] lg:h-[calc(100vh-2rem)] overflow-y-auto relative custom-scrollbar">
                 {/* Top Header */}
-                <header className="h-16 bg-white/80 backdrop-blur-xl border-b border-slate-100/60 sticky top-0 z-10 flex items-center justify-between px-8 rounded-t-[0.8rem]">
-                    <div className="flex items-center">
+                <header className="h-16 bg-white/80 backdrop-blur-xl border-b border-slate-100/60 sticky top-0 z-10 flex items-center justify-between px-4 lg:px-8 rounded-t-[0.8rem]">
+                    <div className="flex items-center gap-3">
+                        <button
+                            className="p-2 lg:hidden text-slate-600 hover:text-[#14151C] transition-colors rounded-xl hover:bg-slate-100"
+                            onClick={() => setIsSidebarOpen(true)}
+                        >
+                            <Menu size={22} />
+                        </button>
                         {/* Breadcrumb or Title can go here */}
                     </div>
                     <div className="flex items-center gap-4">
@@ -152,7 +177,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </header>
 
                 {/* Page Content */}
-                <div className="flex-1 p-8">
+                <div className="flex-1 p-4 lg:p-8">
                     {children}
                 </div>
             </main>
