@@ -109,6 +109,17 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
     const [loading, setLoading] = useState(true);
     const [analyzing, setAnalyzing] = useState(false);
     const [techData, setTechData] = useState<any>(null);
+    const [shouldAutoAnalyze, setShouldAutoAnalyze] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const search = window.location.search;
+            if (search.includes('autoAnalyze=true')) {
+                setShouldAutoAnalyze(true);
+                window.history.replaceState(null, '', window.location.pathname);
+            }
+        }
+    }, []);
 
     const fetchLead = async () => {
         try {
@@ -178,6 +189,13 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
     useEffect(() => {
         fetchLead();
     }, [id]);
+
+    useEffect(() => {
+        if (shouldAutoAnalyze && lead && !techData && !analyzing) {
+            setShouldAutoAnalyze(false);
+            handleAnalyzeTech();
+        }
+    }, [shouldAutoAnalyze, lead, techData, analyzing]);
 
     const handleAnalyzeTech = async () => {
         setAnalyzing(true);
@@ -313,126 +331,126 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    {techData && (
-                        <div className="relative bg-[#14151C] rounded-2xl border border-slate-800 shadow-2xl p-6 sm:p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-700 overflow-hidden mt-8">
-                            {/* Decorative background flare */}
-                            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#D0F252] opacity-10 rounded-full blur-[100px] pointer-events-none" />
-                            <div className="absolute bottom-[-20%] left-[-10%] w-[400px] h-[400px] bg-blue-500 opacity-[0.05] rounded-full blur-[80px] pointer-events-none" />
+            {techData && (
+                <div className="relative bg-[#14151C] rounded-2xl border border-slate-800 shadow-2xl p-6 sm:p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-700 overflow-hidden mt-8">
+                    {/* Decorative background flare */}
+                    <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#D0F252] opacity-10 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute bottom-[-20%] left-[-10%] w-[400px] h-[400px] bg-blue-500 opacity-[0.05] rounded-full blur-[80px] pointer-events-none" />
 
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-[#D0F252]/10 rounded-xl text-[#D0F252] border border-[#D0F252]/20 shadow-inner">
-                                        <Zap size={22} fill="currentColor" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-black text-white tracking-tight">Viabilidade Técnica de Satélite</h3>
-                                        <p className="text-xs text-slate-400 font-medium tracking-wide">Analisado via Google Solar API</p>
-                                    </div>
-                                </div>
-                                <div className="px-3 py-1.5 bg-[#D0F252]/20 text-[#D0F252] text-[10px] font-black uppercase tracking-widest rounded-full border border-[#D0F252]/30 flex items-center justify-center gap-1.5 w-max">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#D0F252] animate-pulse" /> Scanner 3D Concluído
-                                </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-[#D0F252]/10 rounded-xl text-[#D0F252] border border-[#D0F252]/20 shadow-inner">
+                                <Zap size={22} fill="currentColor" />
                             </div>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 relative z-10">
-                                {/* Imagem de Satélite Expandida */}
-                                <div className="relative w-full aspect-[4/3] lg:aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 group bg-slate-900 flex-shrink-0">
-                                    <div className="absolute inset-0 bg-gradient-to-t from-[#14151C] via-transparent to-[#14151C]/30 z-10 pointer-events-none" />
-
-                                    {/* Crosshair / UI elements over map */}
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 border border-[#D0F252]/50 rounded-full z-20 flex items-center justify-center pointer-events-none">
-                                        <div className="w-1 h-1 bg-[#D0F252] rounded-full" />
-                                    </div>
-                                    <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-white/90 drop-shadow-md bg-black/50 px-2 py-1 rounded backdrop-blur-sm">REC</span>
-                                    </div>
-
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={techData.satelliteUrl} alt="Satélite do Google Solar" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out opacity-90 mix-blend-luminosity hover:mix-blend-normal" />
-                                </div>
-
-                                {/* Dados Técnicos */}
-                                <div className="flex flex-col justify-center gap-4">
-                                    <h4 className="text-slate-300 font-bold text-sm tracking-wide uppercase mb-1">Métricas Extraídas do Telhado</h4>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
-                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Área Útil</span>
-                                            <span className="text-2xl sm:text-3xl font-black text-white">{techData.areaM2.toFixed(0)} <span className="text-sm font-medium text-slate-500">m²</span></span>
-                                        </div>
-                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
-                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Painéis (Máx)</span>
-                                            <span className="text-2xl sm:text-3xl font-black text-white">{techData.maxPanels > 0 ? techData.maxPanels : "N/A"} <span className="text-sm font-medium text-slate-500 line-clamp-1">unidades</span></span>
-                                        </div>
-                                        <div className="col-span-2 p-5 bg-gradient-to-br from-[#D0F252]/20 to-[#D0F252]/5 rounded-2xl border border-[#D0F252]/30 backdrop-blur-md shadow-lg">
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <span className="text-[11px] text-[#D0F252]/80 font-black uppercase tracking-widest block mb-1">Potencial Máximo Técnico</span>
-                                                    <span className="text-3xl font-black text-[#D0F252]">{techData.maxKwp.toFixed(2)} <span className="text-base font-bold">kWp</span></span>
-                                                </div>
-                                                <Zap size={32} className="text-[#D0F252] opacity-50" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {techData.areaM2 === 0 || techData.maxKwp === 0 ? (
-                                        <div className="mt-4 p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20 text-xs text-yellow-500 font-medium flex gap-3 items-start">
-                                            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
-                                            <p><b>Leitura Parcial de Satélite:</b> O satélite localizou as coordenadas do logradouro e mensurou a incidência solar da região (<b>{Math.round(techData.irradiance)}h</b>), porém não possui dados 3D volumétricos detalhados deste telhado específico na base do Google. O cálculo detalhado da área precisará de validação humana (ex: fotos ou ida ao local).</p>
-                                        </div>
-                                    ) : (
-                                        <div className="mt-4 p-4 bg-green-500/10 rounded-xl border border-green-500/20 text-xs text-green-400 font-medium flex gap-3 items-start">
-                                            <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-green-400" />
-                                            <p><b>Conclusão Física:</b> O algoritmo do satélite confirmou área de luz desobstruída suficiente para a potência apresentada, descartando pontos de sombra contínuos.</p>
-                                        </div>
-                                    )}
-                                </div>
+                            <div>
+                                <h3 className="text-xl font-black text-white tracking-tight">Viabilidade Técnica de Satélite</h3>
+                                <p className="text-xs text-slate-400 font-medium tracking-wide">Analisado via Google Solar API</p>
                             </div>
                         </div>
-                    )}
-
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Home size={18} className="text-slate-400" />
-                            <h3 className="text-md font-bold text-[#14151C]">Parâmetros do Sistema</h3>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 border-t border-slate-100 pt-4">
-                            <div className="flex justify-between py-2 border-b border-slate-50">
-                                <span className="text-sm font-medium text-slate-500">Consumo Mensal:</span>
-                                <span className="text-sm font-bold text-[#14151C]">{lead.consumption}</span>
-                            </div>
-                            <div className="flex justify-between py-2 border-b border-slate-50 sm:pl-4 sm:border-l">
-                                <span className="text-sm font-medium text-slate-500">Área Estimada:</span>
-                                <span className="text-sm font-bold text-[#14151C]">{lead.area}</span>
-                            </div>
+                        <div className="px-3 py-1.5 bg-[#D0F252]/20 text-[#D0F252] text-[10px] font-black uppercase tracking-widest rounded-full border border-[#D0F252]/30 flex items-center justify-center gap-1.5 w-max">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#D0F252] animate-pulse" /> Scanner 3D Concluído
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                        <h3 className="text-md font-bold text-[#14151C] mb-4">Jornada</h3>
-                        <div className="space-y-4">
-                            {techData && (
-                                <div className="flex gap-4">
-                                    <div className="w-8 h-8 rounded-full bg-[#14151C] text-[#D0F252] flex items-center justify-center shrink-0">
-                                        <Zap size={14} fill="currentColor" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-[#14151C]">Análise Técnica via Satélite</p>
-                                        <p className="text-xs text-slate-500">Viabilidade técnica verificada hoje.</p>
-                                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 relative z-10">
+                        {/* Imagem de Satélite Expandida */}
+                        <div className="relative w-full aspect-[4/3] lg:aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 group bg-slate-900 flex-shrink-0">
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#14151C] via-transparent to-[#14151C]/30 z-10 pointer-events-none" />
+
+                            {/* Crosshair / UI elements over map */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 border border-[#D0F252]/50 rounded-full z-20 flex items-center justify-center pointer-events-none">
+                                <div className="w-1 h-1 bg-[#D0F252] rounded-full" />
+                            </div>
+                            <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-white/90 drop-shadow-md bg-black/50 px-2 py-1 rounded backdrop-blur-sm">REC</span>
+                            </div>
+
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={techData.satelliteUrl} alt="Satélite do Google Solar" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out opacity-90 mix-blend-luminosity hover:mix-blend-normal" />
+                        </div>
+
+                        {/* Dados Técnicos */}
+                        <div className="flex flex-col justify-center gap-4">
+                            <h4 className="text-slate-300 font-bold text-sm tracking-wide uppercase mb-1">Métricas Extraídas do Telhado</h4>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Área Útil</span>
+                                    <span className="text-2xl sm:text-3xl font-black text-white">{techData.areaM2.toFixed(0)} <span className="text-sm font-medium text-slate-500">m²</span></span>
                                 </div>
-                            )}
-                            <div className="flex gap-4">
-                                <div className="w-8 h-8 rounded-full bg-[#D0F252] text-[#14151C] flex items-center justify-center shrink-0">
-                                    <CheckCircle2 size={16} />
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Painéis (Máx)</span>
+                                    <span className="text-2xl sm:text-3xl font-black text-white">{techData.maxPanels > 0 ? techData.maxPanels : "N/A"} <span className="text-sm font-medium text-slate-500 line-clamp-1">unidades</span></span>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-bold text-[#14151C]">Simulação Finalizada</p>
-                                    <p className="text-xs text-slate-500">{lead.date}</p>
+                                <div className="col-span-2 p-5 bg-gradient-to-br from-[#D0F252]/20 to-[#D0F252]/5 rounded-2xl border border-[#D0F252]/30 backdrop-blur-md shadow-lg">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <span className="text-[11px] text-[#D0F252]/80 font-black uppercase tracking-widest block mb-1">Potencial Máximo Técnico</span>
+                                            <span className="text-3xl font-black text-[#D0F252]">{techData.maxKwp.toFixed(2)} <span className="text-base font-bold">kWp</span></span>
+                                        </div>
+                                        <Zap size={32} className="text-[#D0F252] opacity-50" />
+                                    </div>
                                 </div>
                             </div>
+
+                            {techData.areaM2 === 0 || techData.maxKwp === 0 ? (
+                                <div className="mt-4 p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20 text-xs text-yellow-500 font-medium flex gap-3 items-start">
+                                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                                    <p><b>Leitura Parcial de Satélite:</b> O satélite localizou as coordenadas do logradouro e mensurou a incidência solar da região (<b>{Math.round(techData.irradiance)}h</b>), porém não possui dados 3D volumétricos detalhados deste telhado específico na base do Google. O cálculo detalhado da área precisará de validação humana (ex: fotos ou ida ao local).</p>
+                                </div>
+                            ) : (
+                                <div className="mt-4 p-4 bg-green-500/10 rounded-xl border border-green-500/20 text-xs text-green-400 font-medium flex gap-3 items-start">
+                                    <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-green-400" />
+                                    <p><b>Conclusão Física:</b> O algoritmo do satélite confirmou área de luz desobstruída suficiente para a potência apresentada, descartando pontos de sombra contínuos.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <Home size={18} className="text-slate-400" />
+                    <h3 className="text-md font-bold text-[#14151C]">Parâmetros do Sistema</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 border-t border-slate-100 pt-4">
+                    <div className="flex justify-between py-2 border-b border-slate-50">
+                        <span className="text-sm font-medium text-slate-500">Consumo Mensal:</span>
+                        <span className="text-sm font-bold text-[#14151C]">{lead.consumption}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-slate-50 sm:pl-4 sm:border-l">
+                        <span className="text-sm font-medium text-slate-500">Área Estimada:</span>
+                        <span className="text-sm font-bold text-[#14151C]">{lead.area}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h3 className="text-md font-bold text-[#14151C] mb-4">Jornada</h3>
+                <div className="space-y-4">
+                    {techData && (
+                        <div className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-[#14151C] text-[#D0F252] flex items-center justify-center shrink-0">
+                                <Zap size={14} fill="currentColor" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-[#14151C]">Análise Técnica via Satélite</p>
+                                <p className="text-xs text-slate-500">Viabilidade técnica verificada hoje.</p>
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex gap-4">
+                        <div className="w-8 h-8 rounded-full bg-[#D0F252] text-[#14151C] flex items-center justify-center shrink-0">
+                            <CheckCircle2 size={16} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-[#14151C]">Simulação Finalizada</p>
+                            <p className="text-xs text-slate-500">{lead.date}</p>
                         </div>
                     </div>
                 </div>

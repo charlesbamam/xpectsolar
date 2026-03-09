@@ -443,27 +443,7 @@ function LeadRow({ id, name, location, date, score, techAnalyzed, onAnalyzeSucce
         e.stopPropagation();
         if (score !== 'A') return;
         setAnalyzing(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`/api/leads/${id}/analyze`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`
-                }
-            });
-            const result = await res.json();
-            if (result.success) {
-                onAnalyzeSuccess();
-                router.push(`/dashboard/leads/${id}`);
-            } else {
-                onError(result.error || "Erro ao analisar.");
-            }
-        } catch (err) {
-            console.error(err);
-            onError("Erro de conexão.");
-        } finally {
-            setAnalyzing(false);
-        }
+        router.push(`/dashboard/leads/${id}?autoAnalyze=true`);
     };
 
     return (

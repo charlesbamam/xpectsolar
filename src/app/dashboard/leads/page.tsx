@@ -313,27 +313,7 @@ function LeadRow({ id, name, email, address, score, savings, status, date, techA
     const handleAnalyze = async (e: React.MouseEvent) => {
         e.stopPropagation();
         setAnalyzing(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`/api/leads/${id}/analyze`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`
-                }
-            });
-            const result = await res.json();
-            if (result.success) {
-                onAnalyzeSuccess();
-                router.push(`/dashboard/leads/${id}`);
-            } else {
-                onError(result.error || "Houve um erro desconhecido ao analisar o lead.");
-            }
-        } catch (err) {
-            console.error("Erro ao analisar:", err);
-            onError("Erro de conexão ao tentar alcançar os servidores do satélite. Tente novamente.");
-        } finally {
-            setAnalyzing(false);
-        }
+        router.push(`/dashboard/leads/${id}?autoAnalyze=true`);
     };
 
     return (
