@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
             const geoData = await geoRes.json();
 
             if (geoData.status !== "OK" || !geoData.results[0]) {
-                return NextResponse.json({ error: "Google não localizou as coordenadas exatas." }, { status: 400 });
+                return NextResponse.json({ error: "Nosso sistema não localizou as coordenadas exatas." }, { status: 400 });
             }
 
             lat = geoData.results[0].geometry.location.lat;
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
             formattedAddress = geoData.results[0].formatted_address;
         }
 
-        // 2. Google Solar API para pegar análise do telhado
+        // 2. Mapeamento Solar API para pegar análise do telhado
         const solarUrl = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${lat}&location.longitude=${lng}&requiredQuality=HIGH&key=${GOOGLE_API_KEY}`;
         let solarData = null;
 
@@ -41,6 +41,15 @@ export async function POST(req: NextRequest) {
             const solarRes = await fetch(solarUrl);
             if (solarRes.ok) {
                 solarData = await solarRes.json();
+                console.log("=== API DE MAPEAMENTO - DEBUG ===");
+                console.log("solarPanels populated:", solarData?.solarPotential?.solarPanels?.length || 0);
+                if (solarData?.solarPotential?.solarPanels?.length > 0) {
+                    console.log("Primeiro painel:", solarData.solarPotential.solarPanels[0]);
+                } else {
+                    console.log("Nenhum painel detectado (Array vazio). Redirecionando para tentativa de DataLayers...");
+                }
+                console.log("solarPanelConfigs available:", solarData?.solarPotential?.solarPanelConfigs?.length || 0);
+                console.log("=================================");
             } else {
                 console.warn("Solar API error status:", solarRes.status);
             }

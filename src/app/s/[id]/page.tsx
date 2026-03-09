@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import Script from "next/script"; // Added Script import
+import InteractiveSolarMap from "@/components/InteractiveSolarMap";
 import {
     Zap, Calculator, CheckCircle2, Phone,
     ArrowRight, ArrowLeft, Building2, Home as HomeIcon,
@@ -879,6 +880,24 @@ export default function PublicSimulator() {
                                         </div>
                                     </div>
 
+                                    {/* Componente Interativo do Mapa Satélite com os Painéis */}
+                                    {results.solarData?.solarPotential && results.solarData.solarPotential.solarPanels && (
+                                        <div className="md:col-span-3 h-[400px] w-full rounded-3xl overflow-hidden border border-[#D4E44A]/50 shadow-xl shadow-[#111F18]/10 animate-in fade-in duration-500 relative bg-slate-200">
+                                            <InteractiveSolarMap
+                                                lat={results.locationData?.lat || formData.lat!}
+                                                lng={results.locationData?.lng || formData.lng!}
+                                                apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
+                                                solarPanels={results.solarData.solarPotential.solarPanels}
+                                                panelsCount={results.numPlacas}
+                                                segmentSummaries={results.solarData.solarPotential.roofSegmentSummaries}
+                                                zoom={20}
+                                            />
+                                            <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md text-white p-3 rounded-xl border border-white/10 text-xs md:text-sm font-medium z-10 text-center animate-in slide-in-from-bottom-2 duration-700 delay-500">
+                                                Visualização do sistema dimensionado para <b>{results.numPlacas} painéis</b> projetados com tecnologia satelital.
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Google Satélite Info */}
                                     {results.solarData?.solarPotential && (
                                         <div className="md:col-span-3 bg-[#EEF2DC] p-6 rounded-[24px] border border-[#D4E44A]/50 flex items-start gap-4 animate-in fade-in duration-500">
@@ -886,7 +905,7 @@ export default function PublicSimulator() {
                                                 <Sun size={24} />
                                             </div>
                                             <div>
-                                                <h4 className="text-[#1A4A38] font-black text-lg mb-1">Satélite do Google detectou o seu telhado!</h4>
+                                                <h4 className="text-[#1A4A38] font-black text-lg mb-1">Mapeamento via satélite detectou o seu telhado!</h4>
                                                 <p className="text-[#1A4A38]/80 text-sm font-medium">Análise de IA identificou que seu telhado suporta um limite de <b>{results.solarData.solarPotential.maxArrayPanelsCount} painéis</b>, numa área máxima de <b>{Math.round(results.solarData.solarPotential.maxArrayAreaMeters2)}m²</b> (com incidência de luz ideal). O cálculo acima considerou essas limitações reais físicas da sua casa.</p>
                                             </div>
                                         </div>

@@ -110,24 +110,24 @@ export async function POST(
             const geoData = await geoRes.json();
 
             if (geoData.status !== "OK" || !geoData.results[0]) {
-                return NextResponse.json({ error: "Google não localizou as coordenadas exatas para este CEP e Número." }, { status: 400 });
+                return NextResponse.json({ error: "Não foi possível localizar as coordenadas exatas para este CEP e Número." }, { status: 400 });
             }
 
             lat = geoData.results[0].geometry.location.lat;
             lng = geoData.results[0].geometry.location.lng;
         }
 
-        // 5. Google Solar API
+        // 5. Tecnlogia de Mapeamento por Satélite
         const solarUrl = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${lat}&location.longitude=${lng}&requiredQuality=LOW&key=${GOOGLE_API_KEY}`;
         const solarRes = await fetch(solarUrl);
         const solarData = await solarRes.json();
 
         if (solarRes.status !== 200) {
-            console.error("Erro da API Google Solar:", solarData);
+            console.error("Erro da API de Satélite:", solarData);
             const apiMsg = solarData.error?.message || "Desconhecido";
             const apiStatus = solarData.error?.status || solarRes.status;
             return NextResponse.json({
-                error: `Ops! A API do Google Solar recusou a busca. Motivo: [${apiStatus}] ${apiMsg}. Verifique os detalhes técnicos.`
+                error: `Ops! O serviço de satélite recusou a busca. Motivo: [${apiStatus}] ${apiMsg}. Verifique os detalhes técnicos.`
             }, { status: 404 });
         }
 

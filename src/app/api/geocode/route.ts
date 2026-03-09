@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
         const geoData = await geoRes.json();
 
         if (geoData.status !== "OK" || !geoData.results[0]) {
-            return NextResponse.json({ error: "Google não localizou as coordenadas exatas para este endereço." }, { status: 400 });
+            return NextResponse.json({ error: "Não conseguimos localizar as coordenadas exatas para este endereço." }, { status: 400 });
         }
 
         const { lat, lng } = geoData.results[0].geometry.location;

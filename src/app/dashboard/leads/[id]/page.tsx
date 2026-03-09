@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import InteractiveSolarMap from "@/components/InteractiveSolarMap";
 import { ArrowLeft, MapPin, Zap, CheckCircle2, Phone, Mail, Calendar, FileText, Home, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -110,6 +111,13 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
     const [analyzing, setAnalyzing] = useState(false);
     const [techData, setTechData] = useState<any>(null);
     const [shouldAutoAnalyze, setShouldAutoAnalyze] = useState(false);
+    const techDataRef = useRef<HTMLDivElement>(null);
+
+    const scrollToTechData = () => {
+        setTimeout(() => {
+            techDataRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 500);
+    };
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -175,7 +183,11 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                         maxKwp: data.tech_kwp,
                         satelliteUrl: data.tech_satellite_url,
                         payback: data.tech_payback,
-                        maxPanels: data.tech_data?.solarPotential?.maxArrayPanelsCount || 0
+                        maxPanels: data.tech_data?.solarPotential?.maxArrayPanelsCount || 0,
+                        solarPanels: data.tech_data?.solarPotential?.solarPanels,
+                        roofSegmentSummaries: data.tech_data?.solarPotential?.roofSegmentSummaries,
+                        lat: data.simulation_data?.lat || data.simulation_data?.location?.lat,
+                        lng: data.simulation_data?.lng || data.simulation_data?.location?.lng
                     });
                 }
             }
@@ -212,6 +224,7 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
             if (result.success) {
                 setTechData(result.data);
                 await fetchLead();
+                scrollToTechData();
             } else {
                 alert(result.error || "Erro ao analisar viabilidade técnica.");
             }
@@ -332,10 +345,53 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                         </div>
                     </div>
                 </div>
+
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Home size={18} className="text-slate-400" />
+                        <h3 className="text-md font-bold text-[#14151C]">Parâmetros do Sistema</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 border-t border-slate-100 pt-4">
+                        <div className="flex justify-between py-2 border-b border-slate-50">
+                            <span className="text-sm font-medium text-slate-500">Consumo Mensal:</span>
+                            <span className="text-sm font-bold text-[#14151C]">{lead.consumption}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-slate-50 sm:pl-4 sm:border-l">
+                            <span className="text-sm font-medium text-slate-500">Área Estimada:</span>
+                            <span className="text-sm font-bold text-[#14151C]">{lead.area}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <h3 className="text-md font-bold text-[#14151C] mb-4">Jornada</h3>
+                    <div className="space-y-4">
+                        {techData && (
+                            <div className="flex gap-4">
+                                <div className="w-8 h-8 rounded-full bg-[#14151C] text-[#D0F252] flex items-center justify-center shrink-0">
+                                    <Zap size={14} fill="currentColor" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-[#14151C]">Análise Técnica via Satélite</p>
+                                    <p className="text-xs text-slate-500">Viabilidade técnica verificada hoje.</p>
+                                </div>
+                            </div>
+                        )}
+                        <div className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-[#D0F252] text-[#14151C] flex items-center justify-center shrink-0">
+                                <CheckCircle2 size={16} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-[#14151C]">Simulação Finalizada</p>
+                                <p className="text-xs text-slate-500">{lead.date}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {techData && (
-                <div className="relative bg-[#14151C] rounded-2xl border border-slate-800 shadow-2xl p-6 sm:p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-700 overflow-hidden mt-8">
+                <div ref={techDataRef} className="relative bg-[#14151C] rounded-2xl border border-slate-800 shadow-2xl p-6 sm:p-8 space-y-8 animate-in fade-in slide-in-from-top-4 duration-700 overflow-hidden mt-8">
                     {/* Decorative background flare */}
                     <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#D0F252] opacity-10 rounded-full blur-[100px] pointer-events-none" />
                     <div className="absolute bottom-[-20%] left-[-10%] w-[400px] h-[400px] bg-blue-500 opacity-[0.05] rounded-full blur-[80px] pointer-events-none" />
@@ -347,7 +403,7 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                             </div>
                             <div>
                                 <h3 className="text-xl font-black text-white tracking-tight">Viabilidade Técnica de Satélite</h3>
-                                <p className="text-xs text-slate-400 font-medium tracking-wide">Analisado via Google Solar API</p>
+                                <p className="text-xs text-slate-400 font-medium tracking-wide">Tecnologia de Mapeamento por Satélite</p>
                             </div>
                         </div>
                         <div className="px-3 py-1.5 bg-[#D0F252]/20 text-[#D0F252] text-[10px] font-black uppercase tracking-widest rounded-full border border-[#D0F252]/30 flex items-center justify-center gap-1.5 w-max">
@@ -369,8 +425,20 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                                 <span className="text-[9px] font-black uppercase tracking-widest text-white/90 drop-shadow-md bg-black/50 px-2 py-1 rounded backdrop-blur-sm">REC</span>
                             </div>
 
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={techData.satelliteUrl} alt="Satélite do Google Solar" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out opacity-90 mix-blend-luminosity hover:mix-blend-normal" />
+                            {techData.solarPanels && techData.solarPanels.length > 0 && techData.lat && techData.lng ? (
+                                <InteractiveSolarMap
+                                    lat={techData.lat}
+                                    lng={techData.lng}
+                                    apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
+                                    solarPanels={techData.solarPanels}
+                                    panelsCount={techData.maxPanels}
+                                    segmentSummaries={techData.roofSegmentSummaries}
+                                    zoom={20}
+                                />
+                            ) : (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={techData.satelliteUrl} alt="Mapeamento de Viabilidade por Satélite" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out opacity-90 mix-blend-luminosity hover:mix-blend-normal" />
+                            )}
                         </div>
 
                         {/* Dados Técnicos */}
@@ -400,7 +468,7 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                             {techData.areaM2 === 0 || techData.maxKwp === 0 ? (
                                 <div className="mt-4 p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20 text-xs text-yellow-500 font-medium flex gap-3 items-start">
                                     <AlertTriangle size={18} className="shrink-0 mt-0.5" />
-                                    <p><b>Leitura Parcial de Satélite:</b> O satélite localizou as coordenadas do logradouro e mensurou a incidência solar da região (<b>{Math.round(techData.irradiance)}h</b>), porém não possui dados 3D volumétricos detalhados deste telhado específico na base do Google. O cálculo detalhado da área precisará de validação humana (ex: fotos ou ida ao local).</p>
+                                    <p><b>Leitura Parcial de Satélite:</b> O satélite localizou as coordenadas do logradouro e mensurou a incidência solar da região (<b>{Math.round(techData.irradiance)}h</b>), porém não possui dados 3D volumétricos detalhados deste telhado específico na base de dados. O cálculo detalhado da área precisará de validação humana (ex: fotos ou ida ao local).</p>
                                 </div>
                             ) : (
                                 <div className="mt-4 p-4 bg-green-500/10 rounded-xl border border-green-500/20 text-xs text-green-400 font-medium flex gap-3 items-start">
@@ -412,49 +480,6 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                     </div>
                 </div>
             )}
-
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <Home size={18} className="text-slate-400" />
-                    <h3 className="text-md font-bold text-[#14151C]">Parâmetros do Sistema</h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 border-t border-slate-100 pt-4">
-                    <div className="flex justify-between py-2 border-b border-slate-50">
-                        <span className="text-sm font-medium text-slate-500">Consumo Mensal:</span>
-                        <span className="text-sm font-bold text-[#14151C]">{lead.consumption}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-slate-50 sm:pl-4 sm:border-l">
-                        <span className="text-sm font-medium text-slate-500">Área Estimada:</span>
-                        <span className="text-sm font-bold text-[#14151C]">{lead.area}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <h3 className="text-md font-bold text-[#14151C] mb-4">Jornada</h3>
-                <div className="space-y-4">
-                    {techData && (
-                        <div className="flex gap-4">
-                            <div className="w-8 h-8 rounded-full bg-[#14151C] text-[#D0F252] flex items-center justify-center shrink-0">
-                                <Zap size={14} fill="currentColor" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-[#14151C]">Análise Técnica via Satélite</p>
-                                <p className="text-xs text-slate-500">Viabilidade técnica verificada hoje.</p>
-                            </div>
-                        </div>
-                    )}
-                    <div className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-[#D0F252] text-[#14151C] flex items-center justify-center shrink-0">
-                            <CheckCircle2 size={16} />
-                        </div>
-                        <div>
-                            <p className="text-sm font-bold text-[#14151C]">Simulação Finalizada</p>
-                            <p className="text-xs text-slate-500">{lead.date}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 }

@@ -87,7 +87,7 @@ export default function RegisterPage() {
 
                         <div className="space-y-6 mt-auto">
                             <FeatureItem text="100 análises satelitais/mês" />
-                            <FeatureItem text="Google Solar API Integrada" />
+                            <FeatureItem text="Mapeamento por Satélite Integrado" />
                             <FeatureItem text="Link Público para Captação" />
                         </div>
                     </div>

@@ -197,7 +197,7 @@ export default function PlanPage() {
                             <BenefitItem text={planData.type === 'free' ? "2 análises gratuitas" : "100 análises mensais"} />
                             <BenefitItem text="Suporte Prioritário" />
                             <BenefitItem text="Dashboard de Gestão" />
-                            <BenefitItem text="Google Solar API Incluída" />
+                            <BenefitItem text="Mapeamento por Satélite Incluído" />
                             <BenefitItem text="Exportação CSV" />
                         </ul>
                     </div>
