@@ -131,17 +131,34 @@ export async function POST(
             }, { status: 404 });
         }
 
-        // 6. Extrair Métricas Técnicas
+        // 6. Extrair e Processar Métricas Técnicas
         const stats = solarData.wholeRoofStats || {};
-        const areaM2 = stats.areaMeters2 || 0;
+
+        // Se a API não tiver o recorte 3D da área, usamos a projeção mecânica exata gerada no simulador
+        const simData = lead.simulation_data || {};
+        const baseAreaFallback = simData.num_placas ? Math.ceil(simData.num_placas * 2.2) : 25;
+        const areaM2 = stats.areaMeters2 || solarData.solarPotential?.maxArrayAreaMeters2 || baseAreaFallback;
+
         const maxSunHoursPerYear = solarData.solarPotential?.maxSunshineHoursPerYear || 0;
-        const irradiance = maxSunHoursPerYear;
-        const maxKwp = solarData.solarPotential?.maxArrayKwp || (areaM2 * 0.15);
-        const satelliteUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=20&size=600x600&scale=2&maptype=satellite&key=${GOOGLE_API_KEY}`;
+        const irradiance = maxSunHoursPerYear || (simData.irradiance_mensal_kwh_m2 ? simData.irradiance_mensal_kwh_m2 * 12 : 2100);
+
+        const fallbackKwp = simData.potencia_kwp || (areaM2 * 0.15);
+        const maxKwp = solarData.solarPotential?.maxArrayKwp || fallbackKwp;
+
+        const maxPanels = solarData.solarPotential?.maxArrayPanelsCount || simData.num_placas || Math.floor(maxKwp / 0.55);
+
+        // Força a inserção no objeto de tech_data para garantir o resgate no frontend
+        if (!solarData.solarPotential) {
+            solarData.solarPotential = {};
+        }
+        solarData.solarPotential.maxArrayPanelsCount = maxPanels;
+
+        // Ajuste de zoom para mostrar mais os arredores
+        const satelliteUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=19&size=640x600&scale=2&maptype=satellite&key=${GOOGLE_API_KEY}`;
 
         const geracaoMensalEst = (maxKwp * (irradiance / 12) * 0.82);
         const economiaMensal = Math.min(lead.monthly_bill || 0, geracaoMensalEst);
-        const payback = 4.5; // Estimativa fixa técnica
+        const payback = lead.estimated_savings > 0 ? (lead.estimated_capex / (economiaMensal * 12)) : 4.5;
 
         // 7. Atualizar Lead no banco
         const { error: updateError } = await supabaseAuth
