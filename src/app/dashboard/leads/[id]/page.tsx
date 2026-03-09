@@ -163,7 +163,8 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                         irradiance: data.tech_irradiance,
                         maxKwp: data.tech_kwp,
                         satelliteUrl: data.tech_satellite_url,
-                        payback: data.tech_payback
+                        payback: data.tech_payback,
+                        maxPanels: data.tech_data?.solarPotential?.maxArrayPanelsCount || 0
                     });
                 }
             }
@@ -334,9 +335,9 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8 relative z-10">
-                                {/* Imagem de Satélite */}
-                                <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 group bg-slate-900">
+                            <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 relative z-10">
+                                {/* Imagem de Satélite Expandida */}
+                                <div className="relative w-full aspect-[4/3] lg:aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 group bg-slate-900 flex-shrink-0">
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#14151C] via-transparent to-[#14151C]/30 z-10 pointer-events-none" />
 
                                     {/* Crosshair / UI elements over map */}
@@ -358,12 +359,12 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
-                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Área Útil Estimada</span>
-                                            <span className="text-2xl font-black text-white">{techData.areaM2.toFixed(0)} <span className="text-sm font-medium text-slate-500">m²</span></span>
+                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Área Útil</span>
+                                            <span className="text-2xl sm:text-3xl font-black text-white">{techData.areaM2.toFixed(0)} <span className="text-sm font-medium text-slate-500">m²</span></span>
                                         </div>
                                         <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
-                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Irradiância / Ano</span>
-                                            <span className="text-2xl font-black text-white">{Math.round(techData.irradiance)} <span className="text-sm font-medium text-slate-500">h</span></span>
+                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Painéis (Máx)</span>
+                                            <span className="text-2xl sm:text-3xl font-black text-white">{techData.maxPanels > 0 ? techData.maxPanels : "N/A"} <span className="text-sm font-medium text-slate-500 line-clamp-1">unidades</span></span>
                                         </div>
                                         <div className="col-span-2 p-5 bg-gradient-to-br from-[#D0F252]/20 to-[#D0F252]/5 rounded-2xl border border-[#D0F252]/30 backdrop-blur-md shadow-lg">
                                             <div className="flex items-start justify-between">

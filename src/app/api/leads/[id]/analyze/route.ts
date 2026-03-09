@@ -137,7 +137,7 @@ export async function POST(
         const maxSunHoursPerYear = solarData.solarPotential?.maxSunshineHoursPerYear || 0;
         const irradiance = maxSunHoursPerYear;
         const maxKwp = solarData.solarPotential?.maxArrayKwp || (areaM2 * 0.15);
-        const satelliteUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=20&size=600x400&maptype=satellite&key=${GOOGLE_API_KEY}`;
+        const satelliteUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=20&size=600x600&scale=2&maptype=satellite&key=${GOOGLE_API_KEY}`;
 
         const geracaoMensalEst = (maxKwp * (irradiance / 12) * 0.82);
         const economiaMensal = Math.min(lead.monthly_bill || 0, geracaoMensalEst);
