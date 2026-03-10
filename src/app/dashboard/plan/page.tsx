@@ -166,7 +166,8 @@ export default function PlanPage() {
                                             setLoading(false);
                                         }
                                     } else {
-                                        setShowPreRegisterModal(true);
+                                        // Se já for plano essencial, ele deveria ir para o Customer Portal do Stripe
+                                        alert("Em breve: Portal de Gerenciamento de Assinatura do Stripe.");
                                     }
                                 }}
                                 disabled={loading}
@@ -175,7 +176,7 @@ export default function PlanPage() {
                                 {loading && planData.type === 'free' ? (
                                     <>Processando... <Loader2 className="animate-spin" size={16} /></>
                                 ) : (
-                                    <>{planData.type === 'free' ? 'Assinar Plano Essencial' : 'Alterar Plano'} <ArrowRight size={16} className="text-[#D0F252]" /></>
+                                    <>{planData.type === 'free' ? 'Assinar Plano Essencial' : 'Gerenciar Assinatura'} <ArrowRight size={16} className="text-[#D0F252]" /></>
                                 )}
                             </button>
                         </div>

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Zap, CheckCircle2, Loader2, Eye, EyeOff } from "lucide-react";
@@ -17,8 +16,6 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [isVerifying, setIsVerifying] = useState(false);
-    const router = useRouter();
-
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -53,7 +50,13 @@ export default function RegisterPage() {
 
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : "Erro ao criar conta. Tente novamente.";
-            setError(errorMessage);
+
+            // Tratamento especial se for erro de email limit do Supabase
+            if (errorMessage.toLowerCase().includes("error sending confirmation email") || errorMessage.toLowerCase().includes("rate limit")) {
+                setError("Sua conta foi criada, mas o limite técnico de e-mails gratuitos do servidor foi atingido e não pudemos enviar a confirmação. Por favor, tente fazer Login com o Google ou contate o suporte.");
+            } else {
+                setError(errorMessage);
+            }
             setLoading(false);
         }
     };
@@ -186,10 +189,10 @@ export default function RegisterPage() {
                                     </label>
                                     <input
                                         id="inviteCode"
-                                        type="text"
+                                        type="password"
                                         value={inviteCode}
                                         onChange={(e) => setInviteCode(e.target.value)}
-                                        placeholder="EX: XPECT-BETA-8K9V-2026"
+                                        placeholder="••••••••••••••••"
                                         required
                                         className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-[#D0F252]/10 focus:bg-[#D0F252]/20 focus:outline-none focus:ring-4 focus:ring-[#D0F252]/30 focus:border-[#2ECC8C] transition-all placeholder:text-slate-400/50 text-[#14151C] font-black uppercase tracking-widest"
                                     />

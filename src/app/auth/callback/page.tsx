@@ -50,7 +50,8 @@ export default function AuthCallbackPage() {
                         email: user.email,
                         whatsapp_number: "00000000000",
                         slug: slugCandidate.replace(/[^a-z0-9-]/g, ""),
-                        company_name: "Xpect Solar"
+                        company_name: "Xpect Solar",
+                        plan_type: "free",
                     });
                 }
 
