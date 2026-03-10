@@ -12,6 +12,7 @@ export default function RegisterPage() {
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [inviteCode, setInviteCode] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -22,6 +23,12 @@ export default function RegisterPage() {
         e.preventDefault();
         setLoading(true);
         setError("");
+
+        if (inviteCode.trim().toUpperCase() !== "XPECT2026") {
+            setError("O Xpect Solar está em Beta Fechado. Insira um código de convite VIP válido.");
+            setLoading(false);
+            return;
+        }
 
         try {
             // 1. Criar usuário no Auth com o link de confirmação tradicional
@@ -52,6 +59,12 @@ export default function RegisterPage() {
     };
 
     const handleSocialLogin = async (provider: 'google') => {
+        setError("");
+        if (inviteCode.trim().toUpperCase() !== "XPECT2026") {
+            setError("O Xpect Solar está em Beta Fechado. Insira um código VIP acima para criar com conta do Google.");
+            return;
+        }
+
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
@@ -164,6 +177,21 @@ export default function RegisterPage() {
                                         placeholder="nome@suaempresa.com.br"
                                         required
                                         className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#14151C]/5 focus:border-[#14151C] transition-all placeholder:text-slate-400 text-[#14151C] font-medium"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor="inviteCode" className="block text-[11px] font-black uppercase text-[#2ECC8C] ml-1 flex items-center gap-1">
+                                        <Zap size={10} fill="currentColor" /> Código de Convite VIP
+                                    </label>
+                                    <input
+                                        id="inviteCode"
+                                        type="text"
+                                        value={inviteCode}
+                                        onChange={(e) => setInviteCode(e.target.value)}
+                                        placeholder="EX: XPECT2026"
+                                        required
+                                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-[#D0F252]/10 focus:bg-[#D0F252]/20 focus:outline-none focus:ring-4 focus:ring-[#D0F252]/30 focus:border-[#2ECC8C] transition-all placeholder:text-slate-400/50 text-[#14151C] font-black uppercase tracking-widest"
                                     />
                                 </div>
 
