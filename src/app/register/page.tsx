@@ -95,13 +95,13 @@ export default function RegisterPage() {
 
                         <h2 className="text-3xl md:text-4xl font-black mb-4 leading-tight tracking-tighter">Pare de perder tempo com telhados inviáveis.</h2>
                         <p className="text-slate-400 mb-8 leading-relaxed text-base md:text-lg font-medium">
-                            Qualifique leads via satélite e foque nas prospecções técnicas com alto potencial de geração de caixa.
+                            Qualifique leads via satélite e foque nas prospecções técnicas com <span className="text-[#D0F252]">alto potencial para fechar contrato</span>.
                         </p>
 
                         <div className="space-y-4 mt-2">
                             <FeatureItem text="100 análises satelitais/mês" />
                             <FeatureItem text="Mapeamento por Satélite Integrado" />
-                            <FeatureItem text="Link Público para Captação" />
+                            <FeatureItem text="Seu próprio simulador para captar seus leads" />
                         </div>
                     </div>
                 </div>
