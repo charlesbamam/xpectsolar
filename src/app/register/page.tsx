@@ -24,7 +24,7 @@ export default function RegisterPage() {
         setLoading(true);
         setError("");
 
-        if (inviteCode.trim().toUpperCase() !== "XPECT2026") {
+        if (inviteCode.trim().toUpperCase() !== "XPECT-BETA-8K9V-2026") {
             setError("O Xpect Solar está em Beta Fechado. Insira um código de convite VIP válido.");
             setLoading(false);
             return;
@@ -60,7 +60,7 @@ export default function RegisterPage() {
 
     const handleSocialLogin = async (provider: 'google') => {
         setError("");
-        if (inviteCode.trim().toUpperCase() !== "XPECT2026") {
+        if (inviteCode.trim().toUpperCase() !== "XPECT-BETA-8K9V-2026") {
             setError("O Xpect Solar está em Beta Fechado. Insira um código VIP acima para criar com conta do Google.");
             return;
         }
@@ -189,7 +189,7 @@ export default function RegisterPage() {
                                         type="text"
                                         value={inviteCode}
                                         onChange={(e) => setInviteCode(e.target.value)}
-                                        placeholder="EX: XPECT2026"
+                                        placeholder="EX: XPECT-BETA-8K9V-2026"
                                         required
                                         className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-[#D0F252]/10 focus:bg-[#D0F252]/20 focus:outline-none focus:ring-4 focus:ring-[#D0F252]/30 focus:border-[#2ECC8C] transition-all placeholder:text-slate-400/50 text-[#14151C] font-black uppercase tracking-widest"
                                     />
