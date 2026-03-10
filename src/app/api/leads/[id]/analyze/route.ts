@@ -104,13 +104,29 @@ export async function POST(
                 return NextResponse.json({ error: "Endereço incompleto (CEP ausente) na ficha do lead." }, { status: 400 });
             }
 
-            const addressFallback = `${sData.numeroCasa || ""}, ${sData.cep || ""}, ${lead.city_state || ""}, Brazil`.replace(/^,\s*/, '').trim();
-            const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressFallback)}&key=${GOOGLE_API_KEY}`;
-            const geoRes = await fetch(geoUrl);
-            const geoData = await geoRes.json();
+            let addressFallback = `${sData.numeroCasa || ""}, ${sData.cep || ""}, ${lead.city_state || ""}, Brazil`.replace(/^,\s*/, '').trim();
+            let geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressFallback)}&key=${GOOGLE_API_KEY}`;
+            let geoRes = await fetch(geoUrl);
+            let geoData = await geoRes.json();
 
             if (geoData.status !== "OK" || !geoData.results[0]) {
-                return NextResponse.json({ error: "Não foi possível localizar as coordenadas exatas para este CEP e Número." }, { status: 400 });
+                // Tentativa 2: Apenas CEP e Cidade/Estado (Mais abrangente)
+                addressFallback = `${sData.cep || ""}, ${lead.city_state || ""}, Brazil`.replace(/^,\s*/, '').trim();
+                geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressFallback)}&key=${GOOGLE_API_KEY}`;
+                geoRes = await fetch(geoUrl);
+                geoData = await geoRes.json();
+
+                if (geoData.status !== "OK" || !geoData.results[0]) {
+                    // Tentativa 3: Apenas a Cidade e Estado
+                    addressFallback = `${lead.city_state || ""}, Brazil`.replace(/^,\s*/, '').trim();
+                    geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressFallback)}&key=${GOOGLE_API_KEY}`;
+                    geoRes = await fetch(geoUrl);
+                    geoData = await geoRes.json();
+
+                    if (geoData.status !== "OK" || !geoData.results[0]) {
+                        return NextResponse.json({ error: "Não foi possível localizar as coordenadas exatas para este CEP e Número." }, { status: 400 });
+                    }
+                }
             }
 
             lat = geoData.results[0].geometry.location.lat;
