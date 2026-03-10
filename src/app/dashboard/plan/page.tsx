@@ -152,12 +152,20 @@ export default function PlanPage() {
                                     if (planData.type === 'free') {
                                         setLoading(true);
                                         try {
-                                            const response = await fetch('/api/stripe/checkout', { method: 'POST' });
+                                            const { data: sessionData } = await supabase.auth.getSession();
+                                            const token = sessionData.session?.access_token;
+
+                                            const response = await fetch('/api/stripe/checkout', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Authorization': `Bearer ${token}`
+                                                }
+                                            });
                                             const data = await response.json();
                                             if (data.url) {
                                                 window.location.href = data.url;
                                             } else {
-                                                alert("Erro ao iniciar pagamento. Tente novamente.");
+                                                alert(`Erro ao iniciar pagamento: ${data.error || 'Tente novamente.'}`);
                                             }
                                         } catch (err) {
                                             console.error("Erro checkout:", err);

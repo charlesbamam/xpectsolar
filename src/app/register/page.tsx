@@ -30,7 +30,7 @@ export default function RegisterPage() {
         try {
             // 1. Criar usuário no Auth com o link de confirmação tradicional
             // Passamos firstName e lastName no user_metadata para usar depois da confirmação
-            const { error: authError } = await supabase.auth.signUp({
+            const { data, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
@@ -44,16 +44,22 @@ export default function RegisterPage() {
 
             if (authError) throw authError;
 
-            // Transaciona para a tela de aviso de e-mail enviado
+            // Se o "Confirm email" foi desligado no painel do Supabase, o usuário ganha a sessão instantaneamente!
+            if (data?.session) {
+                window.location.href = '/auth/callback';
+                return;
+            }
+
+            // Transaciona para a tela de aviso de e-mail enviado (caso Confirm email continue ativo no Supabase)
             setIsVerifying(true); // Usamos este estado para mostrar a mensagem de sucesso de envio
             setLoading(false);
 
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : "Erro ao criar conta. Tente novamente.";
 
-            // Tratamento especial se for erro de email limit do Supabase
+            // Tratamento especial se for erro do Supabase
             if (errorMessage.toLowerCase().includes("error sending confirmation email") || errorMessage.toLowerCase().includes("rate limit")) {
-                setError("Sua conta foi criada, mas o limite técnico de e-mails gratuitos do servidor foi atingido e não pudemos enviar a confirmação. Por favor, tente fazer Login com o Google ou contate o suporte.");
+                setError("Ocorreu um bloqueio temporário no servidor de envios e não conseguimos mandar o e-mail agora, mas sua conta já foi criada com sucesso! Por favor, volte ao 'Fazer login' abaixo e entre com sua senha recém-criada, ou use o Login com Google.");
             } else {
                 setError(errorMessage);
             }

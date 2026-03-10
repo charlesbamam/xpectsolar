@@ -2,12 +2,19 @@ import { stripe } from '@/lib/stripe';
 import { supabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
-export async function POST() {
+export async function POST(req: Request) {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const authHeader = req.headers.get('Authorization');
+        const token = authHeader?.split(' ')[1];
 
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!token) {
+            return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
+        }
+
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
         }
 
         // Criar a sessão de checkout do Stripe
@@ -35,8 +42,9 @@ export async function POST() {
         });
 
         return NextResponse.json({ url: session.url });
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('Stripe error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
