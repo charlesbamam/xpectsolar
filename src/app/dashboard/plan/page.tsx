@@ -148,17 +148,35 @@ export default function PlanPage() {
                                 Cancelar assinatura
                             </button>
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     if (planData.type === 'free') {
-                                        alert("Redirecionando para o Checkout do Plano Essencial (R$ 97/mês)...");
-                                        // window.location.href = STRIPE_CHECKOUT_URL;
+                                        setLoading(true);
+                                        try {
+                                            const response = await fetch('/api/stripe/checkout', { method: 'POST' });
+                                            const data = await response.json();
+                                            if (data.url) {
+                                                window.location.href = data.url;
+                                            } else {
+                                                alert("Erro ao iniciar pagamento. Tente novamente.");
+                                            }
+                                        } catch (err) {
+                                            console.error("Erro checkout:", err);
+                                            alert("Erro de conexão.");
+                                        } finally {
+                                            setLoading(false);
+                                        }
                                     } else {
                                         setShowPreRegisterModal(true);
                                     }
                                 }}
-                                className="bg-[#14151C] text-white px-8 py-3 rounded-2xl font-bold hover:bg-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#14151C]/10 text-sm flex items-center gap-2"
+                                disabled={loading}
+                                className="bg-[#14151C] text-white px-8 py-3 rounded-2xl font-bold hover:bg-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#14151C]/10 text-sm flex items-center gap-2 disabled:opacity-50"
                             >
-                                {planData.type === 'free' ? 'Assinar Plano Essencial' : 'Alterar Plano'} <ArrowRight size={16} className="text-[#D0F252]" />
+                                {loading && planData.type === 'free' ? (
+                                    <>Processando... <Loader2 className="animate-spin" size={16} /></>
+                                ) : (
+                                    <>{planData.type === 'free' ? 'Assinar Plano Essencial' : 'Alterar Plano'} <ArrowRight size={16} className="text-[#D0F252]" /></>
+                                )}
                             </button>
                         </div>
                     </div>
