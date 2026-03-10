@@ -19,37 +19,38 @@ export async function POST(req: NextRequest) {
         let formattedAddress = address;
 
         if (!lat || !lng) {
-            // 1. Geocoding API para pegar coordenadas se não enviadas
-            const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`;
-            const geoRes = await fetch(geoUrl);
-            const geoData = await geoRes.json();
+            // 1. Geocoding via Nominatim (OpenStreetMap) para evitar bloqueios de Referer Key
+            const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+            try {
+                const geoRes = await fetch(geoUrl, { headers: { "User-Agent": "XpectSolar_App/1.0" }});
+                const geoData = await geoRes.json();
 
-            if (geoData.status !== "OK" || !geoData.results[0]) {
-                return NextResponse.json({ error: "Nosso sistema não localizou as coordenadas exatas." }, { status: 400 });
+                if (geoData && geoData.length > 0) {
+                    lat = parseFloat(geoData[0].lat);
+                    lng = parseFloat(geoData[0].lon);
+                    formattedAddress = geoData[0].display_name;
+                } else {
+                    return NextResponse.json({ error: "Nosso sistema não localizou as coordenadas exatas para este endereço." }, { status: 400 });
+                }
+            } catch (err) {
+                console.error("Geocoding Error:", err);
+                return NextResponse.json({ error: "Erro ao consultar serviço de localização." }, { status: 500 });
             }
-
-            lat = geoData.results[0].geometry.location.lat;
-            lng = geoData.results[0].geometry.location.lng;
-            formattedAddress = geoData.results[0].formatted_address;
         }
 
         // 2. Mapeamento Solar API para pegar análise do telhado
+        const reqReferer = req.headers.get("referer") || req.headers.get("origin") || "https://xpectsolar.com/";
         const solarUrl = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${lat}&location.longitude=${lng}&requiredQuality=HIGH&key=${GOOGLE_API_KEY}`;
         let solarData = null;
 
         try {
-            const solarRes = await fetch(solarUrl);
+            const solarRes = await fetch(solarUrl, {
+                headers: {
+                    "Referer": reqReferer
+                }
+            });
             if (solarRes.ok) {
                 solarData = await solarRes.json();
-                console.log("=== API DE MAPEAMENTO - DEBUG ===");
-                console.log("solarPanels populated:", solarData?.solarPotential?.solarPanels?.length || 0);
-                if (solarData?.solarPotential?.solarPanels?.length > 0) {
-                    console.log("Primeiro painel:", solarData.solarPotential.solarPanels[0]);
-                } else {
-                    console.log("Nenhum painel detectado (Array vazio). Redirecionando para tentativa de DataLayers...");
-                }
-                console.log("solarPanelConfigs available:", solarData?.solarPotential?.solarPanelConfigs?.length || 0);
-                console.log("=================================");
             } else {
                 console.warn("Solar API error status:", solarRes.status);
             }
