@@ -104,47 +104,72 @@ export async function POST(
                 return NextResponse.json({ error: "Endereço incompleto (CEP ausente) na ficha do lead." }, { status: 400 });
             }
 
-            let addressFallback = `${sData.numeroCasa || ""}, ${sData.cep || ""}, ${lead.city_state || ""}, Brazil`.replace(/^,\s*/, '').trim();
-            let geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressFallback)}&key=${GOOGLE_API_KEY}`;
-            let geoRes = await fetch(geoUrl);
-            let geoData = await geoRes.json();
+            // Função auxiliar para buscar no OSM (Nominatim) com mais precisão
+            const getCoordsOSM = async (query: string) => {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+                try {
+                    const res = await fetch(url, { headers: { "User-Agent": "XpectSolar_App/1.0" }});
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        // Log de depuração (opcional no seu ambiente)
+                        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                    }
+                } catch (e) {
+                    console.error("Geocoding Error:", e);
+                }
+                return null;
+            };
 
-            if (geoData.status !== "OK" || !geoData.results[0]) {
-                // Tentativa 2: Apenas CEP e Cidade/Estado (Mais abrangente)
-                addressFallback = `${sData.cep || ""}, ${lead.city_state || ""}, Brazil`.replace(/^,\s*/, '').trim();
-                geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressFallback)}&key=${GOOGLE_API_KEY}`;
-                geoRes = await fetch(geoUrl);
-                geoData = await geoRes.json();
+            // Tentativa 1: Endereço completo com número, CEP, Cidade, Estado
+            const cityState = lead.city_state || "";
+            let addressFallback = `${sData.numeroCasa || ""}, ${sData.cep || ""}, ${cityState}, Brazil`.replace(/^,\s*/, '').trim();
+            let coords = await getCoordsOSM(addressFallback);
 
-                if (geoData.status !== "OK" || !geoData.results[0]) {
+            if (!coords) {
+                // Tentativa 2: CEP + Cidade + Estado (Mais seguro se o número falhar)
+                addressFallback = `${sData.cep || ""}, ${cityState}, Brazil`.replace(/^,\s*/, '').trim();
+                coords = await getCoordsOSM(addressFallback);
+
+                if (!coords) {
                     // Tentativa 3: Apenas a Cidade e Estado
-                    addressFallback = `${lead.city_state || ""}, Brazil`.replace(/^,\s*/, '').trim();
-                    geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressFallback)}&key=${GOOGLE_API_KEY}`;
-                    geoRes = await fetch(geoUrl);
-                    geoData = await geoRes.json();
-
-                    if (geoData.status !== "OK" || !geoData.results[0]) {
-                        return NextResponse.json({ error: "Não foi possível localizar as coordenadas exatas para este CEP e Número." }, { status: 400 });
+                    addressFallback = `${cityState}, Brazil`.replace(/^,\s*/, '').trim();
+                    coords = await getCoordsOSM(addressFallback);
+                    
+                    if (!coords) {
+                        return NextResponse.json({ error: "Não foi possível localizar as coordenadas geográficas para este endereço." }, { status: 400 });
                     }
                 }
             }
 
-            lat = geoData.results[0].geometry.location.lat;
-            lng = geoData.results[0].geometry.location.lng;
+            lat = coords.lat;
+            lng = coords.lng;
         }
 
         // 5. Tecnlogia de Mapeamento por Satélite
+        const reqReferer = req.headers.get("referer") || req.headers.get("origin") || "https://xpectsolar.com/";
         const solarUrl = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${lat}&location.longitude=${lng}&requiredQuality=LOW&key=${GOOGLE_API_KEY}`;
-        const solarRes = await fetch(solarUrl);
+        const solarRes = await fetch(solarUrl, {
+            headers: {
+                "Referer": reqReferer
+            }
+        });
         const solarData = await solarRes.json();
 
         if (solarRes.status !== 200) {
             console.error("Erro da API de Satélite:", solarData);
             const apiMsg = solarData.error?.message || "Desconhecido";
             const apiStatus = solarData.error?.status || solarRes.status;
+
+            // Tratamento especial para 404 (Localização sem dados solares 3D)
+            if (solarRes.status === 404 || apiStatus === "NOT_FOUND") {
+                return NextResponse.json({
+                    error: "A Google Solar API ainda não possui mapeamento 3D detalhado para este telhado específico. A análise automática está indisponível para este local."
+                }, { status: 404 });
+            }
+
             return NextResponse.json({
-                error: `Ops! O serviço de satélite recusou a busca. Motivo: [${apiStatus}] ${apiMsg}. Verifique os detalhes técnicos.`
-            }, { status: 404 });
+                error: `A API Solar retornou um erro: [${apiStatus}] ${apiMsg}`
+            }, { status: solarRes.status || 500 });
         }
 
         // 6. Extrair e Processar Métricas Técnicas
@@ -207,7 +232,12 @@ export async function POST(
                 maxKwp,
                 satelliteUrl,
                 economiaMensal,
-                payback: payback.toString()
+                payback: payback.toString(),
+                maxPanels,
+                solarPanels: solarData.solarPotential?.solarPanels,
+                roofSegmentSummaries: solarData.solarPotential?.roofSegmentSummaries,
+                lat,
+                lng
             }
         });
 

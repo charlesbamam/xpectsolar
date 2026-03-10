@@ -1,7 +1,12 @@
 import { stripe } from '@/lib/stripe';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
 export async function POST(req: Request) {
     const body = await req.text();
@@ -25,8 +30,8 @@ export async function POST(req: Request) {
         const userId = session.client_reference_id || session.metadata.user_id;
 
         if (userId) {
-            // Atualizar o plano do consultor para 'essential'
-            const { error } = await supabase
+            // Atualizar o plano do consultor para 'essential' usando o Admin Client (By-pass RLS)
+            const { error } = await supabaseAdmin
                 .from('consultants')
                 .update({ plan_type: 'essential' })
                 .eq('id', userId);

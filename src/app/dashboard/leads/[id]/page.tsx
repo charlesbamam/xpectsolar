@@ -209,7 +209,13 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
         }
     }, [shouldAutoAnalyze, lead, techData, analyzing]);
 
+    const isMounted = useRef(true);
+    useEffect(() => {
+        return () => { isMounted.current = false; };
+    }, []);
+
     const handleAnalyzeTech = async () => {
+        if (analyzing) return;
         setAnalyzing(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -221,18 +227,25 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
             });
             const result = await res.json();
 
+            if (!isMounted.current) return;
+
             if (result.success) {
                 setTechData(result.data);
                 await fetchLead();
                 scrollToTechData();
             } else {
-                alert(result.error || "Erro ao analisar viabilidade técnica.");
+                // Se for um erro do Google Solar (404), damos uma mensagem mais amigável
+                if (res.status === 404) {
+                    alert("Atenção: O Google ainda não possui dados 3D detalhados para este telhado específico. Usaremos estimativas regionais.");
+                } else {
+                    alert(result.error || "Erro ao analisar viabilidade técnica.");
+                }
             }
         } catch (err) {
             console.error(err);
-            alert("Erro de conexão com a API Solar.");
+            if (isMounted.current) alert("Erro de conexão com a API Solar.");
         } finally {
-            setAnalyzing(false);
+            if (isMounted.current) setAnalyzing(false);
         }
     };
 
