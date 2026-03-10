@@ -84,21 +84,21 @@ export default function RegisterPage() {
             <div className="w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl shadow-[#14151C]/10 border border-slate-100 overflow-hidden flex flex-col md:flex-row transition-all">
 
                 {/* Left Side - Information */}
-                <div className="md:w-5/12 bg-[#14151C] text-white p-10 md:p-14 flex flex-col relative overflow-hidden">
+                <div className="md:w-5/12 bg-[#14151C] text-white p-8 md:p-10 flex flex-col relative overflow-hidden">
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
                     <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#D0F252] rounded-full blur-[100px] opacity-20" />
 
-                    <div className="relative z-10 flex flex-col h-full">
-                        <Link href="/" className="inline-flex items-center mb-16 hover:opacity-80 transition-opacity w-fit">
+                    <div className="relative z-10 flex flex-col h-full justify-center">
+                        <Link href="/" className="inline-flex items-center mb-10 hover:opacity-80 transition-opacity w-fit">
                             <Image src="/logo.svg" alt="Xpect Solar" width={180} height={45} className="h-10 w-auto brightness-0 invert" />
                         </Link>
 
-                        <h2 className="text-4xl font-black mb-8 leading-tight tracking-tighter">Pare de perder tempo com telhados inviáveis.</h2>
-                        <p className="text-slate-400 mb-10 leading-relaxed text-lg font-medium">
+                        <h2 className="text-3xl md:text-4xl font-black mb-4 leading-tight tracking-tighter">Pare de perder tempo com telhados inviáveis.</h2>
+                        <p className="text-slate-400 mb-8 leading-relaxed text-base md:text-lg font-medium">
                             Qualifique leads via satélite e foque nas prospecções técnicas com alto potencial de geração de caixa.
                         </p>
 
-                        <div className="space-y-6 mt-auto">
+                        <div className="space-y-4 mt-2">
                             <FeatureItem text="100 análises satelitais/mês" />
                             <FeatureItem text="Mapeamento por Satélite Integrado" />
                             <FeatureItem text="Link Público para Captação" />
@@ -107,7 +107,7 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Right Side - Form */}
-                <div className="md:w-7/12 p-8 md:p-14 lg:p-20 relative bg-white flex flex-col justify-center">
+                <div className="md:w-7/12 p-8 md:p-10 relative bg-white flex flex-col justify-center">
                     {isVerifying ? (
                         <div className="text-center animate-in fade-in zoom-in duration-500">
                             <div className="w-24 h-24 bg-[#D0F252] rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-[#D0F252]/20 border-4 border-white">
@@ -128,18 +128,18 @@ export default function RegisterPage() {
                         </div>
                     ) : (
                         <div className="max-w-md mx-auto w-full h-full flex flex-col justify-center">
-                            <div className="mb-10 text-center md:text-left">
-                                <h1 className="text-3xl font-black text-[#14151C] tracking-tight">Crie sua conta</h1>
-                                <p className="text-slate-500 mt-2 font-medium">Comece a classificar seus leads hoje mesmo.</p>
+                            <div className="mb-6 text-center md:text-left">
+                                <h1 className="text-2xl md:text-3xl font-black text-[#14151C] tracking-tight">Crie sua conta</h1>
+                                <p className="text-slate-500 mt-1 font-medium text-sm">Comece a classificar seus leads hoje mesmo.</p>
                             </div>
 
                             {error && (
-                                <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-sm font-bold border border-red-100 mb-6 animate-in slide-in-from-top-2">
+                                <div className="bg-red-50 text-red-600 p-3 rounded-2xl text-xs font-bold border border-red-100 mb-4 animate-in slide-in-from-top-2">
                                     {error}
                                 </div>
                             )}
 
-                            <form className="space-y-5" onSubmit={handleRegister}>
+                            <form className="space-y-4" onSubmit={handleRegister}>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label htmlFor="firstname" className="block text-[11px] font-black uppercase text-slate-400 ml-1">Nome</label>
@@ -221,40 +221,40 @@ export default function RegisterPage() {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full h-14 flex items-center justify-center gap-3 bg-[#14151C] hover:bg-black disabled:bg-slate-400 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-[#14151C]/20 transition-all hover:-translate-y-1 mt-4 active:scale-95"
+                                    className="w-full h-12 flex items-center justify-center gap-3 bg-[#14151C] hover:bg-black disabled:bg-slate-400 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-[#14151C]/20 transition-all hover:-translate-y-1 mt-2 active:scale-95"
                                 >
                                     {loading ? (
                                         <Loader2 className="animate-spin" size={20} />
                                     ) : (
-                                        <>Criar Conta Gratuita <Zap size={18} fill="currentColor" className="text-[#D0F252]" /></>
+                                        <>Criar Conta Gratuita <Zap size={16} fill="currentColor" className="text-[#D0F252]" /></>
                                     )}
                                 </button>
 
-                                <div className="relative flex items-center py-2">
+                                <div className="relative flex items-center py-1">
                                     <div className="flex-grow border-t border-slate-100"></div>
                                     <span className="flex-shrink-0 mx-4 text-slate-300 text-[10px] font-black uppercase tracking-widest">ou crie com</span>
                                     <div className="flex-grow border-t border-slate-100"></div>
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <button
                                         type="button"
                                         onClick={() => handleSocialLogin('google')}
-                                        className="w-full h-14 flex items-center justify-center gap-4 bg-white border-2 border-slate-100 hover:border-[#14151C] hover:bg-slate-50 text-[#14151C] rounded-2xl font-black transition-all shadow-sm active:scale-95 group"
+                                        className="w-full h-12 flex items-center justify-center gap-4 bg-white border-2 border-slate-100 hover:border-[#14151C] hover:bg-slate-50 text-[#14151C] rounded-2xl font-black transition-all shadow-sm active:scale-95 group"
                                     >
-                                        <svg className="w-6 h-6 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
+                                        <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
                                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                                             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                                             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                                             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                                         </svg>
-                                        <span className="text-sm uppercase tracking-widest">Continuar com Google</span>
+                                        <span className="text-[13px] uppercase tracking-widest">Continuar com Google</span>
                                     </button>
                                 </div>
                             </form>
 
-                            <div className="mt-10 pt-8 border-t border-slate-100 text-center">
-                                <p className="text-sm text-slate-500 font-medium">
+                            <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+                                <p className="text-xs text-slate-500 font-medium">
                                     Já tem uma conta? <Link href="/login" className="font-black text-[#14151C] hover:underline transition-colors decoration-[#D0F252] underline-offset-4">Fazer login</Link>
                                 </p>
                             </div>
@@ -268,11 +268,11 @@ export default function RegisterPage() {
 
 function FeatureItem({ text }: { text: string }) {
     return (
-        <div className="flex items-center gap-4 bg-white/5 p-4 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors cursor-default group">
-            <div className="w-10 h-10 bg-[#D0F252] rounded-2xl flex items-center justify-center shadow-lg shadow-[#D0F252]/20 group-hover:scale-110 transition-transform">
-                <CheckCircle2 className="text-[#14151C]" size={20} />
+        <div className="flex items-center gap-4 bg-white/5 p-3 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors cursor-default group">
+            <div className="w-8 h-8 bg-[#D0F252] rounded-xl flex items-center justify-center shadow-lg shadow-[#D0F252]/20 group-hover:scale-110 transition-transform">
+                <CheckCircle2 className="text-[#14151C]" size={16} />
             </div>
-            <span className="text-slate-100 font-bold tracking-tight">{text}</span>
+            <span className="text-sm text-slate-100 font-bold tracking-tight">{text}</span>
         </div>
     );
 }
